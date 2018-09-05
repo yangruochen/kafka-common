@@ -85,7 +85,7 @@ public class TestMain {
 					"kafka_consumer_offset", brokerList, kafkaClusterName, topic,
 					consumerGroup, dataProcessor, Integer.parseInt(processThreadNum),
 					Integer.parseInt(flushOffsetSize),
-					Integer.parseInt(flushInterval),Long.parseLong(maxPartitionFetchBytes),new ScanTermMethod());
+					Integer.parseInt(flushInterval),new ScanTermMethod());
 
 		}
 		

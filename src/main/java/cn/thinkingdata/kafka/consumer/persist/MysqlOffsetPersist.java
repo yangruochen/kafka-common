@@ -112,4 +112,8 @@ public class MysqlOffsetPersist extends Thread implements OffsetPersist {
 		KafkaCache.kafkaConsumerOffsets.remove(kafkaConsumerOffset);
 
 	}
+
+	public synchronized void deleteOwner(KafkaConsumerOffset kafkaConsumerOffset) {
+		MysqlOffsetManager.getInstance().deleteOwner(kafkaConsumerOffset);
+	}
 }

@@ -55,7 +55,8 @@ public class MysqlOffsetManager extends OffsetManager {
 	@Override
 	protected synchronized void saveOffsetInExternalStore(
 			KafkaConsumerOffset kafkaConsumerOffset) {
-		logger.debug("because of the muti-thread, the value is not exactly right, kafkaConsumerOffset is " + kafkaConsumerOffset.toString());
+		logger.debug("because of the muti-thread, the value is not exactly right, kafkaConsumerOffset is "
+				+ kafkaConsumerOffset.toString());
 		try {
 			Date now = new Date();
 			String sql = "INSERT INTO "
@@ -79,7 +80,7 @@ public class MysqlOffsetManager extends OffsetManager {
 			ps.setString(6, kafkaConsumerOffset.getKafka_cluster_name());
 			ps.setString(7, kafkaConsumerOffset.getOwner());
 			ps.setTimestamp(8, new Timestamp(kafkaConsumerOffset
-					.getUpdate_time().getTime())); 
+					.getUpdate_time().getTime()));
 			ps.setTimestamp(9, new Timestamp(kafkaConsumerOffset
 					.getCreate_time().getTime()));
 			ps.setLong(11, kafkaConsumerOffset.getLast_flush_offset());
@@ -109,7 +110,9 @@ public class MysqlOffsetManager extends OffsetManager {
 		try {
 			statement = conn.createStatement();
 			String sql = "select * from " + KafkaMysqlOffsetParameter.tableName
-					+ " where topic = '" + topic + "' and kafka_partition = "
+					+ " where kafka_cluster_name = '"
+					+ KafkaMysqlOffsetParameter.kafkaClusterName
+					+ "' and topic = '" + topic + "' and kafka_partition = "
 					+ partition + " and consumer_group = '"
 					+ KafkaMysqlOffsetParameter.consumerGroup + "';";
 			rs = statement.executeQuery(sql);
@@ -120,7 +123,9 @@ public class MysqlOffsetManager extends OffsetManager {
 				if (count > 1) {
 					logger.error("DUPLICATE KEY in "
 							+ KafkaMysqlOffsetParameter.tableName
-							+ ", the topic is " + topic + ", the partition is "
+							+ " , the kafka cluster name is "
+							+ KafkaMysqlOffsetParameter.kafkaClusterName
+							+ " , the topic is " + topic + ", the partition is "
 							+ partition + ", the consumerGroup is "
 							+ KafkaMysqlOffsetParameter.consumerGroup);
 					return kafkaConsumerOffset;
@@ -194,11 +199,13 @@ public class MysqlOffsetManager extends OffsetManager {
 		}
 	}
 
-	public synchronized void saveOffsetInCacheToMysql(KafkaConsumerOffset kafkaConsumerOffset) {
+	public synchronized void saveOffsetInCacheToMysql(
+			KafkaConsumerOffset kafkaConsumerOffset) {
 		Long lag = kafkaConsumerOffset.getOffset()
 				- kafkaConsumerOffset.getLast_flush_offset();
 		if (!lag.equals(0L)) {
-			logger.debug("because of the muti-thread, the value is not exactly right, the lag is " + lag);
+			logger.debug("because of the muti-thread, the value is not exactly right, the lag is "
+					+ lag);
 			saveOffsetInExternalStore(kafkaConsumerOffset);
 		}
 	}
@@ -217,6 +224,32 @@ public class MysqlOffsetManager extends OffsetManager {
 			KafkaMysqlOffsetParameter.mysqlConnState.set(false);
 			// logger.error("can not connect to mysql, the error is "
 			// + e.toString());
+		}
+	}
+
+	public void deleteOwner(KafkaConsumerOffset kafkaConsumerOffset) {
+		logger.debug("delete the owner for kafkaConsumerOffset, kafkaConsumerOffset is "
+				+ kafkaConsumerOffset.toString());
+		Date now = new Date();
+		Statement statement = null;
+		Boolean rs = null;
+		try {
+			statement = conn.createStatement();
+			String sql = "UPDATE " + KafkaMysqlOffsetParameter.tableName
+					+ " set owner='', update_time = NOW()"
+					+ " where kafka_cluster_name = '"
+					+ KafkaMysqlOffsetParameter.kafkaClusterName
+					+ "' and topic = '" + kafkaConsumerOffset.getTopic()
+					+ "' and kafka_partition = "
+					+ kafkaConsumerOffset.getPartition()
+					+ " and consumer_group = '"
+					+ KafkaMysqlOffsetParameter.consumerGroup + "';";
+			rs = statement.execute(sql);
+			KafkaMysqlOffsetParameter.mysqlConnState.set(true);
+		} catch (SQLException e) {
+			KafkaMysqlOffsetParameter.mysqlConnState.set(false);
+			logger.error("mysql save offset error, the error is "
+					+ e.toString());
 		}
 	}
 }

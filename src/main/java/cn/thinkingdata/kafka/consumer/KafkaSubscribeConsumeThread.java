@@ -50,7 +50,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 					consumerDataRunFlag = false;
 					// 如果有新的consumer，则调用rebalance，并阻塞线程
 					ConsumerRecords<String, String> records = consumer
-							.poll(1000);
+							.poll(KafkaMysqlOffsetParameter.pollInterval * 1000);
 					consumerDataRunFlag = true;
 					if (records.count() > 0) {
 						logger.debug("poll records size: " + records.count()
@@ -77,6 +77,27 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 									+ lastConsumerRecord
 									+ ", the kafkaConsumerOffsets is "
 									+ KafkaCache.kafkaConsumerOffsets);
+							kafkaConsumerOffset = offsetManager
+									.readOffsetFromCache(
+											lastConsumerRecord.topic(),
+											lastConsumerRecord.partition());
+							// 设定owner
+							kafkaConsumerOffset
+									.setOwner(KafkaMysqlOffsetParameter.kafkaClusterName
+											+ "_"
+											+ lastConsumerRecord.topic()
+											+ "_"
+											+ lastConsumerRecord.partition()
+											+ "_"
+											+ KafkaMysqlOffsetParameter.consumerGroup
+											+ "_"
+											+ now.getTime()
+											+ "_"
+											+ KafkaMysqlOffsetParameter.hostname
+											+ "_"
+											+ consumer.toString().substring(
+													consumer.toString()
+															.lastIndexOf("@") + 1));
 						}
 						kafkaConsumerOffset
 								.setTopic(lastConsumerRecord.topic());
@@ -107,11 +128,11 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 					}
 				}
 			}
+			consumerDataRunFlag = false;
+			kafkaPollFlag = false;
 			logger.info("kafka consumer close, the kafkaSubscribeConsumerClosed is "
 					+ KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed
 							.get());
-			consumerDataRunFlag = false;
-			kafkaPollFlag = false;
 		} catch (Exception e) {
 			// 外部thread中断kafka的poll操作
 			logger.info("stop consumer with wakeup, the kafkaSubscribeConsumerClosed is "
@@ -131,7 +152,30 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 						.searchKafkaConsumerOffset(lastConsumerRecord.topic(),
 								lastConsumerRecord.partition());
 				if (kafkaConsumerOffset == null) {
-					logger.error("kafkaConsumerOffset is null in cache");
+					logger.error("kafkaConsumerOffset is null in cache in Exception, the lastConsumerRecord is "
+							+ lastConsumerRecord
+							+ ", the kafkaConsumerOffsets is "
+							+ KafkaCache.kafkaConsumerOffsets);
+					kafkaConsumerOffset = offsetManager.readOffsetFromCache(
+							lastConsumerRecord.topic(),
+							lastConsumerRecord.partition());
+					// 设定owner
+					kafkaConsumerOffset
+							.setOwner(KafkaMysqlOffsetParameter.kafkaClusterName
+									+ "_"
+									+ lastConsumerRecord.topic()
+									+ "_"
+									+ lastConsumerRecord.partition()
+									+ "_"
+									+ KafkaMysqlOffsetParameter.consumerGroup
+									+ "_"
+									+ now.getTime()
+									+ "_"
+									+ KafkaMysqlOffsetParameter.hostname
+									+ "_"
+									+ consumer.toString().substring(
+											consumer.toString()
+													.lastIndexOf("@") + 1));
 				}
 				kafkaConsumerOffset.setTopic(lastConsumerRecord.topic());
 				kafkaConsumerOffset
@@ -151,6 +195,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 			}
 			consumerDataRunFlag = false;
 			kafkaPollFlag = false;
+			logger.info("stop consumer with wakeup finished");
 		} finally {
 			logger.info("wait for the mysql persist finish");
 			// 等待MysqlOffsetPersist的persist动作完成
@@ -161,17 +206,32 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 			logger.info("flush before kafka consumer close");
 			logger.debug("kafkaConsumerOffsets is "
 					+ KafkaCache.kafkaConsumerOffsets);
-			for (KafkaConsumerOffset kafkaConsumerOffset : kafkaConsumerOffsetSet) {
-				KafkaConsumerOffset kafkaConsumerOffsetInCache = KafkaCache
-						.searchKafkaConsumerOffset(
-								kafkaConsumerOffset.getTopic(),
-								kafkaConsumerOffset.getPartition());
-				MysqlOffsetPersist.getInstance().flush(
-						kafkaConsumerOffsetInCache);
+			logger.debug("kafkaConsumerOffsetSet is " + kafkaConsumerOffsetSet
+					+ " ,the thread is " + Thread.currentThread().getName());
+			try {
+				for (KafkaConsumerOffset kafkaConsumerOffset : kafkaConsumerOffsetSet) {
+					KafkaConsumerOffset kafkaConsumerOffsetInCache = KafkaCache
+							.searchKafkaConsumerOffset(
+									kafkaConsumerOffset.getTopic(),
+									kafkaConsumerOffset.getPartition());
+					// 因为有Marking the coordinator
+					// dead的情况，所以可能kafkaConsumerOffsetSet里有该partition，
+					// 而另一个线程的kafkaConsumerOffsetSet也有该partition，前一个已经在KafkaCache.kafkaConsumerOffsets中remove了，
+					// 所以有可能查出来是null
+					if (kafkaConsumerOffsetInCache != null) {
+						MysqlOffsetPersist.getInstance().flush(
+								kafkaConsumerOffsetInCache);
+						MysqlOffsetPersist.getInstance().deleteOwner(
+								kafkaConsumerOffsetInCache);
+					}
+				}
+				consumer.close();
+			} catch (Exception e) {
+				logger.error("close consumer error, the exception is "
+						+ e.toString());
 			}
-			logger.info("kafka consumer finally close");
-			consumer.close();
 			kafkaConsumerFlag = false;
+			logger.info("kafka consumer finally close");
 		}
 	}
 

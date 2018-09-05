@@ -38,6 +38,7 @@ public class KafkaSubscribeConsumer {
 		KafkaMysqlOffsetParameter.setValue(jdbcUrl, username, password,
 				tableName, brokerList, kafkaClusterName, topic, consumerGroup,
 				processThreadNum, flushOffsetSize, flushInterval);
+		KafkaMysqlOffsetParameter.createKafkaConfProp();
 		this.dataProcessor = dataProcessor;
 		this.closeMethod = closeMethod;
 	}
@@ -46,34 +47,38 @@ public class KafkaSubscribeConsumer {
 			String password, String tableName, String brokerList,
 			String kafkaClusterName, String topic, String consumerGroup,
 			IDataLineProcessor dataProcessor, Integer processThreadNum,
-			Integer flushOffsetSize, Integer flushInterval, Long maxPartitionFetchBytes,
+			Integer flushOffsetSize, Integer flushInterval,
+			Integer pollInterval, Properties kafkaConf, TermMethod closeMethod)
+			throws IOException {
+		KafkaMysqlOffsetParameter.setValue(jdbcUrl, username, password,
+				tableName, brokerList, kafkaClusterName, topic, consumerGroup,
+				processThreadNum, flushOffsetSize, flushInterval);
+		KafkaMysqlOffsetParameter.setPollInterval(pollInterval);
+		KafkaMysqlOffsetParameter.createKafkaConfProp(kafkaConf);
+		this.dataProcessor = dataProcessor;
+		this.closeMethod = closeMethod;
+	}
+
+	public KafkaSubscribeConsumer(String jdbcUrl, String username,
+			String password, String tableName, String brokerList,
+			String kafkaClusterName, String topic, String consumerGroup,
+			IDataLineProcessor dataProcessor, Integer processThreadNum,
+			Integer flushOffsetSize, Integer flushInterval,
+			Integer pollInterval, Long maxPartitionFetchBytes,
+			Integer heartbeatInterval, Integer sessionTimeout,
 			TermMethod closeMethod) throws IOException {
 		KafkaMysqlOffsetParameter.setValue(jdbcUrl, username, password,
 				tableName, brokerList, kafkaClusterName, topic, consumerGroup,
 				processThreadNum, flushOffsetSize, flushInterval);
-		KafkaMysqlOffsetParameter.setMaxPartitionFetchBytes(maxPartitionFetchBytes);
+		KafkaMysqlOffsetParameter.setPollInterval(pollInterval);
+		KafkaMysqlOffsetParameter.createKafkaConfProp(maxPartitionFetchBytes,
+				heartbeatInterval, sessionTimeout);
 		this.dataProcessor = dataProcessor;
 		this.closeMethod = closeMethod;
 	}
 
 	public void run() {
 		KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.set(false);
-		Properties kafkaConf = new Properties();
-		kafkaConf
-				.put("bootstrap.servers", KafkaMysqlOffsetParameter.brokerList);
-		kafkaConf.put("group.id", KafkaMysqlOffsetParameter.consumerGroup);
-		// Below is a key setting to turn off the auto commit.
-		kafkaConf.put("enable.auto.commit", "false");
-		kafkaConf.put("heartbeat.interval.ms", "5000");
-		kafkaConf.put("session.timeout.ms", "15001");
-		// Control maximum data on each poll, make sure this value is bigger
-		// than the maximum single record size
-		kafkaConf.put("max.partition.fetch.bytes",
-				KafkaMysqlOffsetParameter.maxPartitionFetchBytes);
-		kafkaConf.put("key.deserializer",
-				"org.apache.kafka.common.serialization.StringDeserializer");
-		kafkaConf.put("value.deserializer",
-				"org.apache.kafka.common.serialization.StringDeserializer");
 		List<String> topicList = new ArrayList<String>();
 		topicList.add(KafkaMysqlOffsetParameter.topic);
 		executorService = Executors
@@ -82,7 +87,8 @@ public class KafkaSubscribeConsumer {
 			KafkaSubscribeConsumerManager kafkaSubscribeConsumer = KafkaSubscribeConsumerManager
 					.getInstance();
 			KafkaConsumer<String, String> consumer = kafkaSubscribeConsumer
-					.createKafkaConsumer(topicList, kafkaConf);
+					.createKafkaConsumer(topicList,
+							KafkaMysqlOffsetParameter.kafkaConf);
 			KafkaSubscribeConsumeThread consumeThread = new KafkaSubscribeConsumeThread(
 					consumer, dataProcessor);
 			KafkaCache.consumeThreadList.add(consumeThread);
@@ -90,8 +96,8 @@ public class KafkaSubscribeConsumer {
 		}
 		// 启动定时刷数据入mysql
 		MysqlOffsetPersist.getInstance().start();
-		DaemonCloseThread closeSignal = new DaemonCloseThread(this,closeMethod);
-		closeSignal.setDaemon(true);
+		DaemonCloseThread closeSignal = new DaemonCloseThread(this, closeMethod);
+		// closeSignal.setDaemon(true);
 		closeSignal.start();
 	}
 

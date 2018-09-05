@@ -62,6 +62,8 @@ public class KafkaConsumerRebalancerListener implements
 				//删除kafkaConsumerOffsetSet里的kafkaConsumerOffset
 				for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
 					if(consumeThread.consumer.equals(consumer)){
+						logger.debug("consumeThread.kafkaConsumerOffsetSet remove kafkaConsumerOffset, the kafkaConsumerOffset is " + kafkaConsumerOffset);
+						MysqlOffsetPersist.getInstance().deleteOwner(kafkaConsumerOffset);
 						consumeThread.kafkaConsumerOffsetSet.remove(kafkaConsumerOffset);
 					}
 				}
