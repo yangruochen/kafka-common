@@ -1,12 +1,11 @@
 package cn.thinkingdata.kafka.consumer;
 
-import java.util.List;
-import java.util.Properties;
-
+import cn.thinkingdata.kafka.cache.KafkaCache;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.log4j.Logger;
 
-import cn.thinkingdata.kafka.cache.KafkaCache;
+import java.util.List;
+import java.util.Properties;
 
 public class KafkaSubscribeConsumerManager {
 	

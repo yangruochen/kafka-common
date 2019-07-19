@@ -8,5 +8,7 @@ public interface OffsetPersist {
 	
 	abstract void shutdown();
 	
-	abstract void flush();
+	abstract Boolean flush(KafkaConsumerOffset kafkaConsumerOffsetInCache);
+	
+//	abstract void flush();
 }

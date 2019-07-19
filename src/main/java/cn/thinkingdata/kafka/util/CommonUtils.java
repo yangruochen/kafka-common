@@ -1,14 +1,14 @@
 package cn.thinkingdata.kafka.util;
 
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.net.UnknownHostException;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
 
 public class CommonUtils {
 
@@ -52,4 +52,11 @@ public class CommonUtils {
 			return getHostNameForLiunx();
 		}
 	}
+	
+	public static String getStackTraceAsString(Throwable throwable) {
+		StringWriter stringWriter = new StringWriter();
+		throwable.printStackTrace(new PrintWriter(stringWriter));
+		return stringWriter.toString();
+	}
+
 }

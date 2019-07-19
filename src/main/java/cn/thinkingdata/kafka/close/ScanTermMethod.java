@@ -2,7 +2,7 @@ package cn.thinkingdata.kafka.close;
 
 import java.util.Scanner;
 
-public class ScanTermMethod implements TermMethod{
+public class ScanTermMethod implements TermMethod {
 
 	Scanner scan = new Scanner(System.in);
 	

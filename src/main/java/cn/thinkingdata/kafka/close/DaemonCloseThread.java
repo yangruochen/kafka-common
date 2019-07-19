@@ -1,18 +1,19 @@
 package cn.thinkingdata.kafka.close;
 
+import cn.thinkingdata.kafka.consumer.KafkaSubscribeConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import cn.thinkingdata.kafka.consumer.KafkaSubscribeConsumer;
 
 public class DaemonCloseThread extends Thread {
 
 	private static final Logger logger = LoggerFactory
 			.getLogger(DaemonCloseThread.class);
 	
-	static KafkaSubscribeConsumer consumers;
+	KafkaSubscribeConsumer consumers;
 	
-	static TermMethod closeMethod;
+	TermMethod closeMethod;
+	
+	Boolean flag = true;
 	
 	public DaemonCloseThread(KafkaSubscribeConsumer consumers, TermMethod closeMethod){
 		this.consumers=consumers;
@@ -20,16 +21,26 @@ public class DaemonCloseThread extends Thread {
 	}
 	
 	public static void destroy(KafkaSubscribeConsumer consumers) {
-		consumers.shutdown();
+		consumers.destroy();
 	}
 
 	@Override
 	public void run() {
-		close(closeMethod);
+		close();
+	}
+	
+	public void shutdown() {
+		flag = false;
+	}
+	
+	public void afterDestroyConsumer() {
+		closeMethod.afterDestroyConsumer();
 	}
 
-	private void close(TermMethod closeMethod) {
-		while(true){
+
+	private void close() {
+		logger.info("start DaemonCloseThread!");
+		while(flag){
 			Boolean receiveTermSignal = closeMethod.receiveTermSignal();
 			if(receiveTermSignal){
 				logger.info("start to destroy consumers");
@@ -44,6 +55,6 @@ public class DaemonCloseThread extends Thread {
 				}
 			}
 		}
-		closeMethod.afterDestroyConsumer();
+		logger.info("DaemonCloseThread stop!");
 	}
 }

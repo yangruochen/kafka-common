@@ -163,7 +163,15 @@ public class KafkaConsumerOffset {
 			return false;
 		return true;
 	}
-
+	
+	public boolean isNull() {
+		if (this == null)
+			return true;
+		if (this.topic == null || this.partition == null || this.kafka_cluster_name == null || this.consumer_group == null) 
+			return true;
+		return false;
+		
+	}
 	
 
 }

@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>cn.thinkingdata</groupId>
 	<artifactId>kafka-mysql-offset</artifactId>
-	<version>0.0.2</version>
+	<version>0.1.0</version>
 	<name>kafka-mysql-offset</name>
 	<description>kafka0.10.0-mysql-offset</description>
 
@@ -43,6 +43,11 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>2.6.0</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>3.4</version>
@@ -62,7 +67,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka_2.10</artifactId>
+			<artifactId>kafka_2.11</artifactId>
 			<version>0.10.0.0</version>
 		</dependency>
 		<dependency>
@@ -75,6 +80,28 @@
 			<artifactId>mysql-connector-java</artifactId>
 			<version>5.1.46</version>
 		</dependency>
+		<dependency>
+			<groupId>com.github.rholder</groupId>
+			<artifactId>guava-retrying</artifactId>
+			<version>2.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.google.guava</groupId>
+					<artifactId>guava</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.9.9</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>1.1.14</version>
+		</dependency>
 	</dependencies>
 
 
@@ -86,34 +113,34 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.3.2</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>8</source>
+					<target>8</target>
 					<encoding>UTF-8</encoding>
 				</configuration>
 			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<archive>
-						<manifest>
-							<mainClass>cn.thinkingdata.kafka.test.TestMain</mainClass>
-						</manifest>
-					</archive>
-					<skip>true</skip>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+			<!--  			<plugin>
+                            <artifactId>maven-assembly-plugin</artifactId>
+                            <configuration>
+                                <descriptorRefs>
+                                    <descriptorRef>jar-with-dependencies</descriptorRef>
+                                </descriptorRefs>
+                                <archive>
+                                    <manifest>
+                                        <mainClass>cn.thinkingdata.kafka.test.TestMain</mainClass>
+                                    </manifest>
+                                </archive>
+                                <skip>true</skip>
+                            </configuration>
+                            <executions>
+                                <execution>
+                                    <id>make-assembly</id>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>single</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                        </plugin> -->
 		</plugins>
 	</build>
 
