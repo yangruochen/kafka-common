@@ -24,5 +24,8 @@ CREATE TABLE `kafka_consumer_offset` (
 
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
 
+# 2019/07/19
+version 0.1.0 this version is used in our product (thinking analytics, see: https://www.thinkingdata.cn/manual.html), and it is served for more than 50 companies.
+
 # 2018/09/05
 version 0.0.2 fix the problems when the kafka coordinate dead
