@@ -19,10 +19,13 @@ CREATE TABLE `kafka_consumer_offset` (
   `create_time` timestamp NOT NULL DEFAULT '1971-01-01 00:00:00' COMMENT '入库时间',
   PRIMARY KEY (`oid`),
   UNIQUE KEY `topic_partition_consumer` (`kafka_cluster_name`,`topic`,`kafka_partition`,`consumer_group`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=12632 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
+
+# 2019/07/19
+version 0.1.0 this version is used in our product (thinking analytics, see: https://www.thinkingdata.cn/manual.html), and it is served for more than 50 companies.
 
 # 2018/09/05
 version 0.0.2 fix the problems when the kafka coordinate dead
