@@ -19,7 +19,7 @@ CREATE TABLE `kafka_consumer_offset` (
   `create_time` timestamp NOT NULL DEFAULT '1971-01-01 00:00:00' COMMENT '入库时间',
   PRIMARY KEY (`oid`),
   UNIQUE KEY `topic_partition_consumer` (`kafka_cluster_name`,`topic`,`kafka_partition`,`consumer_group`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=12632 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
