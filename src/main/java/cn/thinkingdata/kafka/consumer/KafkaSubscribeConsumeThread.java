@@ -184,7 +184,11 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 MysqlOffsetManager.getInstance().getExternalStorePersist().executeWhenException();
             }
         } finally {
-            closeKafkaSubscribeConsumeThread();
+            try {
+                closeKafkaSubscribeConsumeThread();
+            } catch (Exception e) {
+                logger.error("closeKafkaSubscribeConsumeThread error, the thread is " + Thread.currentThread().getName() + ", the Exception is " + CommonUtils.getStackTraceAsString(e));
+            }
         }
     }
 
@@ -239,7 +243,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
         }
     }
 
-    public void closeKafkaSubscribeConsumeThread() {
+    public void closeKafkaSubscribeConsumeThread() throws InterruptedException {
         logger.info("start to stop processDataWorker " + processDataWorker.executingThread.getName());
         processDataWorker.stop();
         logger.info("wait for the mysql persist finish");
@@ -337,6 +341,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
             consumer.close();
         }
         kafkaConsumerFlag = false;
+        sendUnsentToProcessDataQueue(true);
         logger.info("kafka consumer finally close");
     }
 
@@ -477,22 +482,36 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         + e.toString());
             }
             // 试着将unsent里的records放入processDataQueue
-            while (CollectionUtils.isNotEmpty(unsent)) {
-                //拿出队首元素但不出栈
-                ConsumerRecord<String, String> recordInUnsent = unsent.peek();
-                if(recordInUnsent != null){
-                    flag = this.processDataQueue.offer(recordInUnsent, 200, TimeUnit.MILLISECONDS);
-                    if (!flag) {
-                        //如果没有放入processDataQueue成功说明队列已满
-                        logger.info("the processDataQueue is full... and the unsent is not empty");
+            sendUnsentToProcessDataQueue(false);
+        }
+    }
+
+    private void sendUnsentToProcessDataQueue(Boolean shutdown) throws InterruptedException {
+        while (CollectionUtils.isNotEmpty(unsent)) {
+            //拿出队首元素但不出栈
+            ConsumerRecord<String, String> recordInUnsent = unsent.peek();
+            if(recordInUnsent != null){
+                Boolean flag = this.processDataQueue.offer(recordInUnsent, 200, TimeUnit.MILLISECONDS);
+                if (!flag) {
+                    //如果没有放入processDataQueue成功说明队列已满
+                    logger.info("the processDataQueue is full... and the unsent is not empty");
+                    //如果没有停止，则跳出，否则需要将unsent清空才能退出
+                    if(!shutdown){
                         break;
                     } else {
-                        //如果放入processDataQueue成功则出栈
-                        unsent.poll();
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            logger.error("------- thread can not sleep ---------------------"
+                                    + e.toString());
+                        }
                     }
                 } else {
-                    logger.error("the unsent is not empty, but the recordInUnsent is null!!");
+                    //如果放入processDataQueue成功则出栈
+                    unsent.poll();
                 }
+            } else {
+                logger.error("the unsent is not empty, but the recordInUnsent is null!!");
             }
         }
     }
