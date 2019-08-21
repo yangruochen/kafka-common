@@ -25,6 +25,9 @@ CREATE TABLE `kafka_consumer_offset` (
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
 
 # 2019/08/21
+version 0.1.3 change name to kafka-common
+
+# 2019/08/21
 version 0.1.2 change new interface
 
 # 2019/07/24
