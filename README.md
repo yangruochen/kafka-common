@@ -1,4 +1,4 @@
-# kafka-mysql-offset
+# kafka-common
 
 This is the code for the exactly-once consumer persists the offsets in mysql for kafka 0.10.0.
 
