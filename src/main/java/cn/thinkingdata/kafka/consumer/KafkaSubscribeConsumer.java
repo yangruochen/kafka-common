@@ -25,7 +25,7 @@ public class KafkaSubscribeConsumer {
     private static final Logger logger = LoggerFactory
             .getLogger(KafkaSubscribeConsumer.class);
 
-    protected IDataLineProcessor dataProcessor;
+    protected NewIDataLineProcessor dataProcessor;
     protected volatile ExecutorService executorService;
     private TermMethod closeMethod;
     private volatile DaemonCloseThread closeSignal;
@@ -35,7 +35,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   TermMethod closeMethod) throws IOException {
         KafkaMysqlOffsetParameter.setValue(jdbcUrl, username, password,
@@ -49,7 +49,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   TermMethod closeMethod, StorePersist externalStorePersist)
             throws IOException {
@@ -63,7 +63,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   Integer pollInterval, Properties kafkaConf, TermMethod closeMethod)
             throws IOException {
@@ -77,7 +77,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   Integer pollInterval, Properties kafkaConf, TermMethod closeMethod,
                                   StorePersist externalStorePersist) throws IOException {
@@ -92,7 +92,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   Integer pollInterval, Long maxPartitionFetchBytes,
                                   Integer heartbeatInterval, Integer sessionTimeout,
@@ -109,7 +109,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   Integer pollInterval, Long maxPartitionFetchBytes,
                                   Integer heartbeatInterval, Integer sessionTimeout,
@@ -128,7 +128,7 @@ public class KafkaSubscribeConsumer {
     public KafkaSubscribeConsumer(String jdbcUrl, String username,
                                   String password, String tableName, String brokerList,
                                   String kafkaClusterName, String topic, String consumerGroup,
-                                  IDataLineProcessor dataProcessor, Integer processThreadNum,
+                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
                                   Integer flushOffsetSize, Integer flushInterval,
                                   Integer pollInterval, Long maxPartitionFetchBytes,
                                   Integer heartbeatInterval, Integer sessionTimeout,

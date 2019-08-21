@@ -1,7 +1,6 @@
 package cn.thinkingdata.kafka.test;
 
 
-import cn.thinkingdata.kafka.consumer.IDataLineProcessor;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,38 +39,38 @@ public class TestMain2 {
 		
 		
 
-		IDataLineProcessor dataProcessor = new IDataLineProcessor() {
-//			ExecutorService executorService = Executors
-//					.newFixedThreadPool(Integer.parseInt(dataProcessNum));
-			
-			ThreadPoolExecutor executorService = new ThreadPoolExecutor(Integer.parseInt(dataProcessNum), Integer.parseInt(dataProcessNum),
-	                0L, TimeUnit.MILLISECONDS,
-	                new LinkedBlockingQueue<Runnable>(500));
-			{
-				executorService.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-			}
-
-			@Override
-			public void processData(String key, String value) {
-				executorService.submit(new ProcessDataThread(key, value));
-			}
-
-			@Override
-			public void finishProcess() {
-				// 关闭线程池
-				if (executorService != null)
-					executorService.shutdown();
-				try {
-					if (!executorService.awaitTermination(5000,
-							TimeUnit.MILLISECONDS)) {
-						logger.warn("Timed out waiting for data process threads to shut down, exiting uncleanly");
-					}
-					// executorService.shutdownNow();
-				} catch (InterruptedException e) {
-					logger.warn("Interrupted during shutdown, exiting uncleanly");
-				}
-			}
-		};
+//		IDataLineProcessor dataProcessor = new IDataLineProcessor() {
+////			ExecutorService executorService = Executors
+////					.newFixedThreadPool(Integer.parseInt(dataProcessNum));
+//
+//			ThreadPoolExecutor executorService = new ThreadPoolExecutor(Integer.parseInt(dataProcessNum), Integer.parseInt(dataProcessNum),
+//	                0L, TimeUnit.MILLISECONDS,
+//	                new LinkedBlockingQueue<Runnable>(500));
+//			{
+//				executorService.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+//			}
+//
+//			@Override
+//			public void processData(String key, String value) {
+//				executorService.submit(new ProcessDataThread(key, value));
+//			}
+//
+//			@Override
+//			public void finishProcess() {
+//				// 关闭线程池
+//				if (executorService != null)
+//					executorService.shutdown();
+//				try {
+//					if (!executorService.awaitTermination(5000,
+//							TimeUnit.MILLISECONDS)) {
+//						logger.warn("Timed out waiting for data process threads to shut down, exiting uncleanly");
+//					}
+//					// executorService.shutdownNow();
+//				} catch (InterruptedException e) {
+//					logger.warn("Interrupted during shutdown, exiting uncleanly");
+//				}
+//			}
+//		};
 
 
 

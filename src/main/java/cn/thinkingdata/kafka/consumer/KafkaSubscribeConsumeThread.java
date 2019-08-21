@@ -30,7 +30,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 
     private static final Logger logger = LoggerFactory
             .getLogger(KafkaSubscribeConsumeThread.class);
-    private IDataLineProcessor dataProcessor;
+    private NewIDataLineProcessor dataProcessor;
     public KafkaConsumer<String, String> consumer;
     private OffsetManager offsetManager = MysqlOffsetManager.getInstance();
     public volatile Boolean kafkaPollFlag = false;
@@ -40,7 +40,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
     public volatile Collection<TopicPartition> assignedPartitions = null;
     private BlockingQueue<ConsumerRecord<String, String>> unsent = new LinkedBlockingQueue<>();
     public Set<KafkaConsumerOffset> kafkaConsumerOffsetSet = new HashSet<KafkaConsumerOffset>();
-    // records的初始值是1000，所以这边capacity的值设为2000
+    // records的初始值是1000，所以这边capacity的值设为3000
     private final BlockingQueue<ConsumerRecord<String, String>> processDataQueue =
             new LinkedBlockingQueue<>(3000);
     private volatile Thread consumerThread;
@@ -55,7 +55,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
     private volatile Boolean paused = false;
 
     public KafkaSubscribeConsumeThread(KafkaConsumer<String, String> consumer,
-                                       IDataLineProcessor dataProcessor, CyclicBarrier offsetFlushBarrier) {
+                                       NewIDataLineProcessor dataProcessor, CyclicBarrier offsetFlushBarrier) {
         this.consumer = consumer;
         this.dataProcessor = dataProcessor;
         this.offsetFlushBarrier = offsetFlushBarrier;
@@ -72,10 +72,8 @@ public class KafkaSubscribeConsumeThread implements Runnable {
         DateTime sessionTimeoutDataTime = new DateTime().plusSeconds(Integer
                 .parseInt(KafkaMysqlOffsetParameter.sessionTimeout));
         try {
-            while (!KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed
-                    .get()) {
-                if (KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState
-                        .get()) {
+            while (!KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get()) {
+                if (KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.get()) {
                     kafkaPollFlag = true;
                     count = 0L;
                     // 如果执行dataExecute的时间超过了sessionTimeout
@@ -83,19 +81,16 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         // 如果有新的consumer，则调用rebalance，并阻塞线程
                         ConsumerRecords<String, String> records = null;
                         try {
-                            records = consumer
-                                    .poll(KafkaMysqlOffsetParameter.pollInterval * 1000);
+                            records = consumer.poll(KafkaMysqlOffsetParameter.pollInterval);
                         } catch (OffsetOutOfRangeException e) {
-                            synchronized (OffsetManager.class){
+                            synchronized (OffsetManager.class) {
                                 MysqlOffsetManager.getInstance().getExternalStorePersist().executeWhenOffsetReset();
                             }
                         }
                         // 计算开始时间
-                        sessionTimeoutDataTime = new DateTime()
-                                .plusSeconds(Integer
-                                        .parseInt(KafkaMysqlOffsetParameter.sessionTimeout) / 1000);
+                        sessionTimeoutDataTime = new DateTime().plusSeconds(Integer.parseInt(KafkaMysqlOffsetParameter.sessionTimeout) / 1000);
                         logger.debug("sessionTimeoutDataTime is " + sessionTimeoutDataTime.toString());
-                        if(records != null){
+                        if (records != null) {
                             if (records.count() > 0) {
                                 logger.debug("poll records size: " + records.count()
                                         + ", partition is " + records.partitions()
@@ -110,18 +105,17 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                             if (isResume()) {
                                 resume();
                             } else {
-                                // 休息3秒
-                                Thread.sleep(3000);
+                                // 休息30豪秒
+                                Thread.sleep(30);
                             }
                             //获取LastConsumerRecord
                             for (ConsumerRecord<String, String> consumerRecord : records) {
                                 count++;
-    //                            dataProcessor.processData(consumerRecord.key(), consumerRecord.value());
-                                addLastConsumerRecord(lastConsumerRecordSet,
-                                        consumerRecord);
+                                //                            dataProcessor.processData(consumerRecord.key(), consumerRecord.value());
+                                addLastConsumerRecord(lastConsumerRecordSet, consumerRecord);
                             }
                             // 更新offset
-                            saveLastConsumerRecordSet(lastConsumerRecordSet,count,false);
+                            saveLastConsumerRecordSet(lastConsumerRecordSet, count, false);
                             lastConsumerRecordSet.clear();
                         }
                     } else {
@@ -134,8 +128,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                     }
                 } else {
                     logger.info("mysql and backup store connect error, the mysqlAndBackupStoreConnState is "
-                            + KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState
-                            .get());
+                            + KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.get());
                     kafkaPollFlag = false;
                     try {
                         Thread.sleep(50);
@@ -147,48 +140,49 @@ public class KafkaSubscribeConsumeThread implements Runnable {
             }
             kafkaPollFlag = false;
             logger.info("kafka consumer close, the kafkaSubscribeConsumerClosed is "
-                    + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed
-                    .get());
+                    + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get());
         } catch (WakeupException | InterruptedException e) {
             // 外部thread中断kafka的poll操作
             logger.info("stop consumer with wakeup or interupted, the kafkaSubscribeConsumerClosed is "
-                    + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed
-                    .get()
+                    + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get()
                     + ", the thread is "
                     + Thread.currentThread().getName()
                     + ", the consumeThreadList is "
-                    + StringUtils.join(KafkaCache.consumeThreadList.stream().map(o->o.consumerThread.getName()).collect(Collectors.toList()),",")
+                    + StringUtils.join(KafkaCache.consumeThreadList.stream().map(o -> o.consumerThread.getName()).collect(Collectors.toList()), ",")
                     + " the kafka cluster name is "
                     + KafkaMysqlOffsetParameter.kafkaClusterName
                     + ", the Exception is " + CommonUtils.getStackTraceAsString(e));
             // 更新offset
-            saveLastConsumerRecordSet(lastConsumerRecordSet,count,true);
+            saveLastConsumerRecordSet(lastConsumerRecordSet, count, true);
             kafkaPollFlag = false;
             logger.info("stop consumer with wakeup finished");
-        } catch(Exception e){
+        } catch (Exception e) {
             // 更新offset
-            saveLastConsumerRecordSet(lastConsumerRecordSet,count,false);
+            saveLastConsumerRecordSet(lastConsumerRecordSet, count, false);
             logger.error("stop consumer with exception, the kafkaSubscribeConsumerClosed is "
-                    + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed
-                    .get()
+                    + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get()
                     + ", the thread is "
                     + Thread.currentThread().getName()
                     + ", the consumeThreadList is "
-                    + StringUtils.join(KafkaCache.consumeThreadList.stream().map(o->o.consumerThread.getName()).collect(Collectors.toList()),",")
+                    + StringUtils.join(KafkaCache.consumeThreadList.stream().map(o -> o.consumerThread.getName()).collect(Collectors.toList()), ",")
                     + " the kafka cluster name is "
                     + KafkaMysqlOffsetParameter.kafkaClusterName
                     + ", the kafkaConsumerOffsets In cache is" + KafkaCache.kafkaConsumerOffsets + ", the Exception is " + CommonUtils.getStackTraceAsString(e));
             kafkaPollFlag = false;
             logger.info("stop consumer finished");
-            synchronized (OffsetManager.class){
+            synchronized (OffsetManager.class) {
                 MysqlOffsetManager.getInstance().getExternalStorePersist().executeWhenException();
             }
         } finally {
-            closeKafkaSubscribeConsumeThread();
+            try {
+                closeKafkaSubscribeConsumeThread();
+            } catch (Exception e) {
+                logger.error("closeKafkaSubscribeConsumeThread error, the thread is " + Thread.currentThread().getName() + ", the Exception is " + CommonUtils.getStackTraceAsString(e));
+            }
         }
     }
 
-    private void saveLastConsumerRecordSet(Set<ConsumerRecord<String, String>> lastConsumerRecordSet, Long count, Boolean cleanOwner){
+    private void saveLastConsumerRecordSet(Set<ConsumerRecord<String, String>> lastConsumerRecordSet, Long count, Boolean cleanOwner) {
         for (ConsumerRecord<String, String> lastConsumerRecord : lastConsumerRecordSet) {
             Date now = new Date();
             KafkaConsumerOffset kafkaConsumerOffset = KafkaCache
@@ -226,27 +220,25 @@ public class KafkaSubscribeConsumeThread implements Runnable {
             kafkaConsumerOffset
                     .setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
             kafkaConsumerOffset.setOffset(lastConsumerRecord.offset() + 1L);
-            kafkaConsumerOffset
-                    .setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
+            kafkaConsumerOffset.setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
             kafkaConsumerOffset.setCount(count);
-            if(cleanOwner){
+            if (cleanOwner) {
                 //退出的时候清除Owner
                 kafkaConsumerOffset.setOwner("");
-                logger.info("clean owner, the thread is "+ Thread.currentThread().getName()+ ", the kafkaConsumerOffset is "+ kafkaConsumerOffset.toString());
+                logger.info("clean owner, the thread is " + Thread.currentThread().getName() + ", the kafkaConsumerOffset is " + kafkaConsumerOffset.toString());
             }
             kafkaConsumerOffsetSet.add(kafkaConsumerOffset);
             offsetManager.saveOffsetInCache(kafkaConsumerOffset);
         }
     }
 
-    public void closeKafkaSubscribeConsumeThread() {
+    public void closeKafkaSubscribeConsumeThread() throws InterruptedException {
         logger.info("start to stop processDataWorker " + processDataWorker.executingThread.getName());
         processDataWorker.stop();
         logger.info("wait for the mysql persist finish");
         // 等待MysqlOffsetPersist的persist动作完成
         for (; ; ) {
-            if (!MysqlOffsetPersist.runFlag && KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed
-                    .get()) {
+            if (!MysqlOffsetPersist.runFlag && KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get()) {
                 break;
             } else {
                 try {
@@ -291,14 +283,12 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                     if (consumerPosition != null
                             && consumerPosition != 0L
                             && kafkaConsumerOffsetInCache != null
-                            && consumerPosition > kafkaConsumerOffsetInCache
-                            .getOffset()) {
+                            && consumerPosition > kafkaConsumerOffsetInCache.getOffset()) {
                         logger.info("consumer position "
                                 + consumerPosition
                                 + "is bigger than the offset in kafkaConsumerOffsetInCache "
                                 + kafkaConsumerOffsetInCache);
-                        kafkaConsumerOffsetInCache
-                                .setOffset(consumerPosition);
+                        kafkaConsumerOffsetInCache.setOffset(consumerPosition);
                     }
                     MysqlOffsetPersist.getInstance().flush(
                             kafkaConsumerOffsetInCache);
@@ -337,6 +327,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
             consumer.close();
         }
         kafkaConsumerFlag = false;
+        sendUnsentToProcessDataQueue(true);
         logger.info("kafka consumer finally close");
     }
 
@@ -464,7 +455,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 }
             }
         } else {
-            if(records.count()>0){
+            if (records.count() > 0) {
                 logger.info("the unsent is not empty but the consummer still polling records, it can be only happed after rebalanced");
             }
             for (ConsumerRecord<String, String> record : records) {
@@ -477,22 +468,36 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         + e.toString());
             }
             // 试着将unsent里的records放入processDataQueue
-            while (CollectionUtils.isNotEmpty(unsent)) {
-                //拿出队首元素但不出栈
-                ConsumerRecord<String, String> recordInUnsent = unsent.peek();
-                if(recordInUnsent != null){
-                    flag = this.processDataQueue.offer(recordInUnsent, 200, TimeUnit.MILLISECONDS);
-                    if (!flag) {
-                        //如果没有放入processDataQueue成功说明队列已满
-                        logger.info("the processDataQueue is full... and the unsent is not empty");
+            sendUnsentToProcessDataQueue(false);
+        }
+    }
+
+    private void sendUnsentToProcessDataQueue(Boolean shutdown) throws InterruptedException {
+        while (CollectionUtils.isNotEmpty(unsent)) {
+            //拿出队首元素但不出栈
+            ConsumerRecord<String, String> recordInUnsent = unsent.peek();
+            if (recordInUnsent != null) {
+                Boolean flag = this.processDataQueue.offer(recordInUnsent, 200, TimeUnit.MILLISECONDS);
+                if (!flag) {
+                    //如果没有放入processDataQueue成功说明队列已满
+                    logger.info("the processDataQueue is full... and the unsent is not empty");
+                    //如果没有停止，则跳出，否则需要将unsent清空才能退出
+                    if (!shutdown) {
                         break;
                     } else {
-                        //如果放入processDataQueue成功则出栈
-                        unsent.poll();
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            logger.error("------- thread can not sleep ---------------------"
+                                    + e.toString());
+                        }
                     }
                 } else {
-                    logger.error("the unsent is not empty, but the recordInUnsent is null!!");
+                    //如果放入processDataQueue成功则出栈
+                    unsent.poll();
                 }
+            } else {
+                logger.error("the unsent is not empty, but the recordInUnsent is null!!");
             }
         }
     }
@@ -515,7 +520,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 while (true) {
                     processOperationData();
                     // 如果queue是空，并且stop为true则退出
-                    if(processDataQueue.size() == 0 && workerStopFlag && unsent.size() == 0) {
+                    if (processDataQueue.size() == 0 && workerStopFlag && unsent.size() == 0) {
                         break;
                     }
                 }
@@ -534,8 +539,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 //                    }
 //                }
             } catch (Exception e) {
-                logger.error("processDataWorker thread is failed, the error is "
-                        + e.toString());
+                logger.error("processDataWorker thread is failed, the error is " + e.toString());
             } finally {
                 logger.info("processDataWorker " + Thread.currentThread().getName() + " is safely closed...");
                 exitLatch.countDown();
@@ -546,7 +550,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
         private void processOperationData() throws InterruptedException {
             consumerRecord = processDataQueue.poll(MAX_WAIT_MS, TimeUnit.MILLISECONDS);
             if (consumerRecord != null) {
-                dataProcessor.processData(consumerRecord.key(), consumerRecord.value());
+                dataProcessor.processData(consumerRecord);
             }
         }
 
@@ -554,8 +558,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                logger.error("------- thread can not sleep ---------------------"
-                        + e.toString());
+                logger.error("------- thread can not sleep ---------------------" + e.toString());
             }
             workerStopFlag = true;
         }
@@ -571,8 +574,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                     try {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
-                        logger.error("------- thread can not sleep ---------------------"
-                                + e.toString());
+                        logger.error("------- thread can not sleep ---------------------" + e.toString());
                     }
                 }
             }

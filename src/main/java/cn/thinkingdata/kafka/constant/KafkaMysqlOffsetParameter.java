@@ -33,7 +33,7 @@ public class KafkaMysqlOffsetParameter {
 	public static String sessionTimeout = "30000";
 	private static String requestTimeout = "40000";
 	public static String autoOffsetReset = "latest";
-	public static Integer pollInterval = 10;
+	public static Integer pollInterval = 50;
 	public static Integer maxPollRecords = 1000;
 	public static Properties kafkaConf;
 
