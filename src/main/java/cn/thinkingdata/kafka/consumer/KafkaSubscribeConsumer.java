@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,116 +31,16 @@ public class KafkaSubscribeConsumer {
     private volatile DaemonCloseThread closeSignal;
     private static volatile Integer startCount = 0;
 
-    // 同步offset的size，同步offset的时间
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  TermMethod closeMethod) throws IOException {
-        KafkaMysqlOffsetParameter.setValue(jdbcUrl, username, password,
-                tableName, brokerList, kafkaClusterName, topic, consumerGroup,
-                processThreadNum, flushOffsetSize, flushInterval);
+    public KafkaSubscribeConsumer(Map<String, String> map, NewIDataLineProcessor dataProcessor, TermMethod closeMethod)
+            throws IOException {
+        KafkaMysqlOffsetParameter.createKafkaConfProp(map);
         this.dataProcessor = dataProcessor;
         this.closeMethod = closeMethod;
-        KafkaMysqlOffsetParameter.createKafkaConfProp();
     }
 
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  TermMethod closeMethod, StorePersist externalStorePersist)
+    public KafkaSubscribeConsumer(Map<String, String> map, NewIDataLineProcessor dataProcessor, TermMethod closeMethod, StorePersist externalStorePersist)
             throws IOException {
-        this(jdbcUrl, username, password, tableName, brokerList,
-                kafkaClusterName, topic, consumerGroup, dataProcessor,
-                processThreadNum, flushOffsetSize, flushInterval, closeMethod);
-        MysqlOffsetManager.getInstance().setExternalStorePersist(
-                externalStorePersist);
-    }
-
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  Integer pollInterval, Properties kafkaConf, TermMethod closeMethod)
-            throws IOException {
-        this(jdbcUrl, username, password, tableName, brokerList,
-                kafkaClusterName, topic, consumerGroup, dataProcessor,
-                processThreadNum, flushOffsetSize, flushInterval, closeMethod);
-        KafkaMysqlOffsetParameter.setPollInterval(pollInterval);
-        KafkaMysqlOffsetParameter.createKafkaConfProp(kafkaConf);
-    }
-
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  Integer pollInterval, Properties kafkaConf, TermMethod closeMethod,
-                                  StorePersist externalStorePersist) throws IOException {
-        this(jdbcUrl, username, password, tableName, brokerList,
-                kafkaClusterName, topic, consumerGroup, dataProcessor,
-                processThreadNum, flushOffsetSize, flushInterval, pollInterval,
-                kafkaConf, closeMethod);
-        MysqlOffsetManager.getInstance().setExternalStorePersist(
-                externalStorePersist);
-    }
-
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  Integer pollInterval, Long maxPartitionFetchBytes,
-                                  Integer heartbeatInterval, Integer sessionTimeout,
-                                  Integer requestTimeout, String autoOffsetReset,
-                                  TermMethod closeMethod) throws IOException {
-        this(jdbcUrl, username, password, tableName, brokerList,
-                kafkaClusterName, topic, consumerGroup, dataProcessor,
-                processThreadNum, flushOffsetSize, flushInterval, closeMethod);
-        KafkaMysqlOffsetParameter.setPollInterval(pollInterval);
-        KafkaMysqlOffsetParameter.createKafkaConfProp(maxPartitionFetchBytes,
-                heartbeatInterval, sessionTimeout, requestTimeout, autoOffsetReset);
-    }
-
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  Integer pollInterval, Long maxPartitionFetchBytes,
-                                  Integer heartbeatInterval, Integer sessionTimeout,
-                                  Integer requestTimeout, String autoOffsetReset,
-                                  TermMethod closeMethod, StorePersist externalStorePersist)
-            throws IOException {
-        this(jdbcUrl, username, password, tableName, brokerList,
-                kafkaClusterName, topic, consumerGroup, dataProcessor,
-                processThreadNum, flushOffsetSize, flushInterval, pollInterval,
-                maxPartitionFetchBytes, heartbeatInterval, sessionTimeout,
-                requestTimeout, autoOffsetReset, closeMethod);
-        MysqlOffsetManager.getInstance().setExternalStorePersist(
-                externalStorePersist);
-    }
-
-    public KafkaSubscribeConsumer(String jdbcUrl, String username,
-                                  String password, String tableName, String brokerList,
-                                  String kafkaClusterName, String topic, String consumerGroup,
-                                  NewIDataLineProcessor dataProcessor, Integer processThreadNum,
-                                  Integer flushOffsetSize, Integer flushInterval,
-                                  Integer pollInterval, Long maxPartitionFetchBytes,
-                                  Integer heartbeatInterval, Integer sessionTimeout,
-                                  Integer requestTimeout, String autoOffsetReset,
-                                  TermMethod closeMethod, StorePersist externalStorePersist, Integer maxPollRecords)
-            throws IOException {
-        this(jdbcUrl, username, password, tableName, brokerList,
-                kafkaClusterName, topic, consumerGroup, dataProcessor,
-                processThreadNum, flushOffsetSize, flushInterval, pollInterval,
-                maxPartitionFetchBytes, heartbeatInterval, sessionTimeout,
-                requestTimeout, autoOffsetReset, closeMethod);
-        KafkaMysqlOffsetParameter.maxPollRecords = maxPollRecords;
+        this(map, dataProcessor, closeMethod);
         MysqlOffsetManager.getInstance().setExternalStorePersist(
                 externalStorePersist);
     }
@@ -160,10 +60,8 @@ public class KafkaSubscribeConsumer {
         KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.set(false);
         List<String> topicList = new ArrayList<String>();
         topicList.add(KafkaMysqlOffsetParameter.topic);
-        executorService = Executors
-                .newFixedThreadPool(KafkaMysqlOffsetParameter.processThreadNum);
-        CyclicBarrier offsetFlushBarrier = new CyclicBarrier(
-                KafkaMysqlOffsetParameter.processThreadNum);
+        executorService = Executors.newFixedThreadPool(KafkaMysqlOffsetParameter.processThreadNum);
+        CyclicBarrier offsetFlushBarrier = new CyclicBarrier(KafkaMysqlOffsetParameter.processThreadNum);
         for (int i = 0; i < KafkaMysqlOffsetParameter.processThreadNum; i++) {
             KafkaSubscribeConsumerManager kafkaSubscribeConsumer = KafkaSubscribeConsumerManager
                     .getInstance();

@@ -2,8 +2,8 @@ package cn.thinkingdata.kafka.close;
 
 public interface TermMethod {
 	
-	public Boolean receiveTermSignal();
+	Boolean receiveTermSignal();
 	
-	public void afterDestroyConsumer();
+	void afterDestroyConsumer();
 
 }
