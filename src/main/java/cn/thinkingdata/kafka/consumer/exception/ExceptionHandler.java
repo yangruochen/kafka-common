@@ -15,7 +15,7 @@ public interface ExceptionHandler {
 	
 	void executeWhenExecuteDataSessionTimeout(KafkaSubscribeConsumeThread kafkaSubscribeConsumeThread);
 
-	void executeWhenOffsetReset();
+	void executeWhenOffsetReset(KafkaSubscribeConsumeThread consumeThread);
 
 	void executeWhenException();
 

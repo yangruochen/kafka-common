@@ -4,11 +4,11 @@ import cn.thinkingdata.kafka.consumer.dao.KafkaConsumerOffset;
 
 public interface OffsetPersist {
 	
-	abstract void persist(KafkaConsumerOffset kafkaConsumerOffsetInCache);
+	void persist(KafkaConsumerOffset kafkaConsumerOffsetInCache);
 	
-	abstract void shutdown();
+	void shutdown();
 	
-	abstract Boolean flush(KafkaConsumerOffset kafkaConsumerOffsetInCache);
+	Boolean flush(KafkaConsumerOffset kafkaConsumerOffsetInCache);
 	
 //	abstract void flush();
 }

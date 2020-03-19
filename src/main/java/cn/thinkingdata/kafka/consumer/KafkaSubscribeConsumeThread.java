@@ -23,7 +23,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class KafkaSubscribeConsumeThread implements Runnable {
@@ -84,7 +88,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                             records = consumer.poll(KafkaMysqlOffsetParameter.pollInterval);
                         } catch (OffsetOutOfRangeException e) {
                             synchronized (OffsetManager.class) {
-                                MysqlOffsetManager.getInstance().getExternalStorePersist().executeWhenOffsetReset();
+                                MysqlOffsetManager.getInstance().getExternalStorePersist().executeWhenOffsetReset(this);
                             }
                         }
                         // 计算开始时间
@@ -115,7 +119,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                                 addLastConsumerRecord(lastConsumerRecordSet, consumerRecord);
                             }
                             // 更新offset
-                            saveLastConsumerRecordSet(lastConsumerRecordSet, count, false);
+                            saveLastConsumerRecordSet(this, lastConsumerRecordSet, count, false);
                             lastConsumerRecordSet.clear();
                         }
                     } else {
@@ -153,12 +157,12 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                     + KafkaMysqlOffsetParameter.kafkaClusterName
                     + ", the Exception is " + CommonUtils.getStackTraceAsString(e));
             // 更新offset
-            saveLastConsumerRecordSet(lastConsumerRecordSet, count, true);
+            saveLastConsumerRecordSet(this, lastConsumerRecordSet, count, true);
             kafkaPollFlag = false;
             logger.info("stop consumer with wakeup finished");
         } catch (Exception e) {
             // 更新offset
-            saveLastConsumerRecordSet(lastConsumerRecordSet, count, false);
+            saveLastConsumerRecordSet(this, lastConsumerRecordSet, count, false);
             logger.error("stop consumer with exception, the kafkaSubscribeConsumerClosed is "
                     + KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get()
                     + ", the thread is "
@@ -182,7 +186,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
         }
     }
 
-    private void saveLastConsumerRecordSet(Set<ConsumerRecord<String, String>> lastConsumerRecordSet, Long count, Boolean cleanOwner) {
+    private void saveLastConsumerRecordSet(KafkaSubscribeConsumeThread consumeThread, Set<ConsumerRecord<String, String>> lastConsumerRecordSet, Long count, Boolean cleanOwner) {
         for (ConsumerRecord<String, String> lastConsumerRecord : lastConsumerRecordSet) {
             Date now = new Date();
             KafkaConsumerOffset kafkaConsumerOffset = KafkaCache
@@ -228,7 +232,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 logger.info("clean owner, the thread is " + Thread.currentThread().getName() + ", the kafkaConsumerOffset is " + kafkaConsumerOffset.toString());
             }
             kafkaConsumerOffsetSet.add(kafkaConsumerOffset);
-            offsetManager.saveOffsetInCache(kafkaConsumerOffset);
+            offsetManager.saveOffsetInCache(consumeThread,kafkaConsumerOffset);
         }
     }
 

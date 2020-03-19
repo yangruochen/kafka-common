@@ -2,6 +2,7 @@ package cn.thinkingdata.kafka.consumer.offset;
 
 import cn.thinkingdata.kafka.cache.KafkaCache;
 import cn.thinkingdata.kafka.constant.KafkaMysqlOffsetParameter;
+import cn.thinkingdata.kafka.consumer.KafkaSubscribeConsumeThread;
 import cn.thinkingdata.kafka.consumer.dao.KafkaConsumerOffset;
 import cn.thinkingdata.kafka.consumer.persist.DefaultStorePersist;
 import cn.thinkingdata.kafka.consumer.persist.StorePersist;
@@ -37,7 +38,7 @@ public abstract class OffsetManager {
 		this.externalStorePersist = externalStorePersist;
 	}
 
-	public void saveOffsetInCache(KafkaConsumerOffset kafkaConsumerOffset) {
+	public void saveOffsetInCache(KafkaSubscribeConsumeThread consumeThread, KafkaConsumerOffset kafkaConsumerOffset) {
 
 		KafkaConsumerOffset kafkaConsumerOffsetOld = KafkaCache
 				.searchKafkaConsumerOffset(kafkaConsumerOffset.getTopic(),
@@ -46,7 +47,7 @@ public abstract class OffsetManager {
 		if(kafkaConsumerOffsetOld != null && kafkaConsumerOffsetOld.getOffset() > kafkaConsumerOffset.getOffset()){
 			logger.info("kafka consumer offset reset, the old kafkaConsumerOffset is " + kafkaConsumerOffsetOld + ", the kafkaConsumerOffset is " + kafkaConsumerOffset);
 			synchronized (OffsetManager.class){
-				externalStorePersist.executeWhenOffsetReset();
+				externalStorePersist.executeWhenOffsetReset(consumeThread);
 			}
 		} else if (kafkaConsumerOffsetOld == null
 				|| !kafkaConsumerOffset.getCount().equals(0L)) {
@@ -78,7 +79,7 @@ public abstract class OffsetManager {
 		return kafkaConsumerOffset;
 	}
 
-	private KafkaConsumerOffset readOffsetFromBackupExternalStore(
+	public KafkaConsumerOffset readOffsetFromBackupExternalStore(
             final String topic, final Integer partition) {
 		KafkaConsumerOffset kafkaConsumerOffset = null;
 		try {
@@ -148,7 +149,7 @@ public abstract class OffsetManager {
 		return kafkaConsumerOffset;
 	}
 
-	private KafkaConsumerOffset getKafkaConsumerOffsetFromMysqlAndBackupExternalStore(
+	public KafkaConsumerOffset getKafkaConsumerOffsetFromMysqlAndBackupExternalStore(
 			KafkaConsumerOffset kafkaConsumerOffset,
 			KafkaConsumerOffset kafkaConsumerOffsetFromBackupExternalStore) {
 		if (kafkaConsumerOffsetFromBackupExternalStore == null) {

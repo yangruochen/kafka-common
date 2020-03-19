@@ -10,11 +10,7 @@ public class ScanTermMethod implements TermMethod {
 	public Boolean receiveTermSignal() {
 		System.out.println("Stop it now?(yes/no):");
 		String result = scan.nextLine();
-		if(result.equals("yes")){
-			return true;
-		} else {
-			return false;
-		}
+        return result.equals("yes");
 		
 	}
 

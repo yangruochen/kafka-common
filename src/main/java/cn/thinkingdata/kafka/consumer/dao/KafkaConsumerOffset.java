@@ -157,21 +157,16 @@ public class KafkaConsumerOffset {
 		} else if (!partition.equals(other.partition))
 			return false;
 		if (topic == null) {
-			if (other.topic != null)
-				return false;
-		} else if (!topic.equals(other.topic))
-			return false;
-		return true;
-	}
+            return other.topic == null;
+		} else return topic.equals(other.topic);
+    }
 	
 	public boolean isNull() {
 		if (this == null)
 			return true;
-		if (this.topic == null || this.partition == null || this.kafka_cluster_name == null || this.consumer_group == null) 
-			return true;
-		return false;
-		
-	}
+        return this.topic == null || this.partition == null || this.kafka_cluster_name == null || this.consumer_group == null;
+
+    }
 	
 
 }

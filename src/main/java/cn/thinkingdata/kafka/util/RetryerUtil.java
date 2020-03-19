@@ -1,6 +1,11 @@
 package cn.thinkingdata.kafka.util;
 
-import com.github.rholder.retry.*;
+import com.github.rholder.retry.Attempt;
+import com.github.rholder.retry.RetryListener;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;

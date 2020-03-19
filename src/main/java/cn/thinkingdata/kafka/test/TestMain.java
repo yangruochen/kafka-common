@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -72,22 +74,22 @@ public class TestMain {
 			}
 		};
 
-
-		if(maxPartitionFetchBytes == null){
-			consumers = new KafkaSubscribeConsumer(jdbcUrl, "ta", "TaThinkingData",
-					"kafka_consumer_offset", brokerList, kafkaClusterName, topic,
-					consumerGroup, dataProcessor, Integer.parseInt(processThreadNum),
-					Integer.parseInt(flushOffsetSize),
-					Integer.parseInt(flushInterval),new ScanTermMethod());
-
-		} else {
-			consumers = new KafkaSubscribeConsumer(jdbcUrl, "ta", "TaThinkingData",
-					"kafka_consumer_offset", brokerList, kafkaClusterName, topic,
-					consumerGroup, dataProcessor, Integer.parseInt(processThreadNum),
-					Integer.parseInt(flushOffsetSize),
-					Integer.parseInt(flushInterval),new ScanTermMethod());
-
+        Map<String, String> map = new HashMap<>();
+		map.put("jdbc.url",jdbcUrl);
+		map.put("username","ta");
+		map.put("password","TaThinkingData");
+		map.put("table.name","kafka_consumer_offset");
+		map.put("broker.list",brokerList);
+		map.put("kafka.cluster.name",kafkaClusterName);
+		map.put("topic",topic);
+		map.put("consumer.group",consumerGroup);
+		map.put("process.thread.num",processThreadNum);
+		map.put("flush.offset.size",flushOffsetSize);
+		map.put("flush.interval",flushInterval);
+		if(maxPartitionFetchBytes != null){
+			map.put("max.partition.fetch.bytes",maxPartitionFetchBytes);
 		}
+		consumers = new KafkaSubscribeConsumer(map,dataProcessor,new ScanTermMethod());
 		
 		consumers.run();
 	}
