@@ -11,6 +11,7 @@ import cn.thinkingdata.kafka.util.RetryerUtil;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.google.common.base.Predicates;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +40,8 @@ public abstract class OffsetManager {
 	}
 
 	public void saveOffsetInCache(KafkaSubscribeConsumeThread consumeThread, KafkaConsumerOffset kafkaConsumerOffset) {
-
-		KafkaConsumerOffset kafkaConsumerOffsetOld = KafkaCache
-				.searchKafkaConsumerOffset(kafkaConsumerOffset.getTopic(),
-						kafkaConsumerOffset.getPartition());
+		TopicPartition topicPartition = new TopicPartition(kafkaConsumerOffset.getTopic(),kafkaConsumerOffset.getPartition());
+		KafkaConsumerOffset kafkaConsumerOffsetOld = KafkaCache.kafkaConsumerOffsetMaps.get(topicPartition);
 		// compare kafkaConsumerOffsetOld and kafkaConsumerOffset, avoid reset
 		if(kafkaConsumerOffsetOld != null && kafkaConsumerOffsetOld.getOffset() > kafkaConsumerOffset.getOffset()){
 			logger.info("kafka consumer offset reset, the old kafkaConsumerOffset is " + kafkaConsumerOffsetOld + ", the kafkaConsumerOffset is " + kafkaConsumerOffset);
@@ -51,13 +50,13 @@ public abstract class OffsetManager {
 			}
 		} else if (kafkaConsumerOffsetOld == null
 				|| !kafkaConsumerOffset.getCount().equals(0L)) {
-			KafkaCache.kafkaConsumerOffsets.add(kafkaConsumerOffset);
+			KafkaCache.kafkaConsumerOffsetMaps.put(topicPartition,kafkaConsumerOffset);
 			kafkaConsumerOffset.setCount(0L);
 		}
 	}
 
 	public KafkaConsumerOffset readOffsetFromMysql(final String topic,
-                                                   final Integer partition) {
+                                                 final Integer partition) {
 		KafkaConsumerOffset kafkaConsumerOffset = null;
 		try {
 			kafkaConsumerOffset = (KafkaConsumerOffset) retryerWithResultNull
@@ -80,7 +79,7 @@ public abstract class OffsetManager {
 	}
 
 	public KafkaConsumerOffset readOffsetFromBackupExternalStore(
-            final String topic, final Integer partition) {
+			final String topic, final Integer partition) {
 		KafkaConsumerOffset kafkaConsumerOffset = null;
 		try {
 			kafkaConsumerOffset = (KafkaConsumerOffset) retryerWithResultNull
@@ -104,10 +103,9 @@ public abstract class OffsetManager {
 		return kafkaConsumerOffset;
 	}
 
-	public synchronized KafkaConsumerOffset readOffsetFromCache(String topic,
-                                                                Integer partition) {
-		KafkaConsumerOffset kafkaConsumerOffset = KafkaCache
-				.searchKafkaConsumerOffset(topic, partition);
+	public synchronized KafkaConsumerOffset readOffsetFromCache(String topic, Integer partition) {
+		TopicPartition topicPartition = new TopicPartition(topic,partition);
+		KafkaConsumerOffset kafkaConsumerOffset = KafkaCache.kafkaConsumerOffsetMaps.get(topicPartition);
 		if (kafkaConsumerOffset == null) {
 			kafkaConsumerOffset = readOffsetFromMysql(topic, partition);
 			if (kafkaConsumerOffset == null) {
@@ -139,7 +137,7 @@ public abstract class OffsetManager {
 					kafkaConsumerOffsetFromBackupExternalStore);
 			if (kafkaConsumerOffset != null) {
 				KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.set(true);
-				KafkaCache.kafkaConsumerOffsets.add(kafkaConsumerOffset);
+				KafkaCache.kafkaConsumerOffsetMaps.put(topicPartition,kafkaConsumerOffset);
 			} else {
 				KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.set(false);
 				logger.error("the kafkaConsumerOffset read from external store is null , the topic is "
@@ -183,6 +181,6 @@ public abstract class OffsetManager {
 			KafkaConsumerOffset kafkaConsumerOffset);
 
 	abstract KafkaConsumerOffset readOffsetFromExternalStore(String topic,
-                                                             int partition);
+                                                           int partition);
 
 }
