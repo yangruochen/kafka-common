@@ -27,7 +27,7 @@ public class KafkaSubscribeConsumer {
 
     protected NewIDataLineProcessor dataProcessor;
     protected volatile ExecutorService executorService;
-    private TermMethod closeMethod;
+    private final TermMethod closeMethod;
     private volatile DaemonCloseThread closeSignal;
     private static volatile Integer startCount = 0;
 
@@ -83,58 +83,24 @@ public class KafkaSubscribeConsumer {
         closeSignal.start();
     }
 
-    public void stopWithException() {
-        logger.info("consumers start shutdown");
-        for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
-            if(consumeThread != null){
-                consumeThread.shutdown();
-                consumeThread.processDataWorker.stopWithException();
-            }
-        }
-        try {
-            // 等待所有拉取线程自动停止
-            Thread.sleep(5000);
-            // 等待所有consumer关闭
-            Thread.sleep(5000);
-            // 等待所有consumer的working线程关闭
-            Thread.sleep(5000);
-        } catch (InterruptedException e2) {
-            logger.error("------- thread can not sleep ---------------------"
-                    + e2.toString());
-        }
-        // 关闭线程池
-        if (executorService != null)
-            executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(120000, TimeUnit.MILLISECONDS)) {
-                logger.error("Timed out waiting for consumer threads to shut down, exiting uncleanly");
-            }
-        } catch (InterruptedException e) {
-            logger.error("Interrupted during shutdown, exiting uncleanly");
-        }
-        logger.info("dataProcessor start to shutdown");
-        dataProcessor.finishProcess();
-        closeSignal.shutdown();
-    }
-
-    public void destroyWithException(){
-        MysqlOffsetPersist.destoryFlag = true;
-        stopWithException();
-        closeSignal.afterDestroyConsumer();
-        logger.info("mysql start to shutdown");
-        // 关闭mysql连接
-        MysqlOffsetPersist.getInstance().shutdown();
-    }
-
     public void stop() {
+        stop(120000);
+    }
+
+    public void stop(long stopTimeOut) {
+        long startTime = System.currentTimeMillis();
         logger.info("consumers start shutdown");
         for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
             if(consumeThread != null){
                 consumeThread.shutdown();
             }
         }
+        Boolean stopExceptionFlag = false;
         // 等待所有拉取线程自动停止
         for (;;) {
+            if(stopExceptionFlag){
+                break;
+            }
             Boolean kafkaPollFlag = false;
             for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
                 if (consumeThread != null && consumeThread.kafkaPollFlag) {
@@ -144,10 +110,17 @@ public class KafkaSubscribeConsumer {
             if (!kafkaPollFlag) {
                 break;
             }
+            if(System.currentTimeMillis()-startTime > stopTimeOut){
+                stopWithTimeOUt();
+                stopExceptionFlag = true;
+            }
         }
         logger.info("kafka polling closed");
         // 等待所有consumer关闭
         for (;;) {
+            if(stopExceptionFlag){
+                break;
+            }
             Boolean kafkaConsumerFlag = false;
             for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
                 if (consumeThread != null && consumeThread.kafkaConsumerFlag) {
@@ -157,10 +130,17 @@ public class KafkaSubscribeConsumer {
             if (!kafkaConsumerFlag) {
                 break;
             }
+            if(System.currentTimeMillis()-startTime > stopTimeOut){
+                stopWithTimeOUt();
+                stopExceptionFlag = true;
+            }
         }
         logger.info("kafka consumer closed");
         // 等待所有consumer的working线程关闭
         for (;;) {
+            if(stopExceptionFlag){
+                break;
+            }
             Boolean processDataWorkingFlag = false;
             for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
                 if (consumeThread != null && consumeThread.processDataWorker.workingFlag) {
@@ -169,6 +149,10 @@ public class KafkaSubscribeConsumer {
             }
             if (!processDataWorkingFlag) {
                 break;
+            }
+            if(System.currentTimeMillis()-startTime > stopTimeOut){
+                stopWithTimeOUt();
+                stopExceptionFlag = true;
             }
         }
         logger.info("process data worker closed");
@@ -187,9 +171,38 @@ public class KafkaSubscribeConsumer {
         closeSignal.shutdown();
     }
 
+    private void stopWithTimeOUt() {
+        logger.info("kafka polling/kafka consumer/process data worker closed with timeout");
+        for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
+            if(consumeThread != null && consumeThread.processDataWorker != null){
+                consumeThread.processDataWorker.stopWithException();
+            }
+        }
+        try {
+            // 等待所有拉取线程自动停止
+            Thread.sleep(5000);
+            // 等待所有consumer关闭
+            Thread.sleep(5000);
+            // 等待所有consumer的working线程关闭
+            Thread.sleep(5000);
+        } catch (InterruptedException e2) {
+            logger.error("------- thread can not sleep ---------------------"
+                    + e2.toString());
+        }
+    }
+
     public void destroy() {
         MysqlOffsetPersist.destoryFlag = true;
         stop();
+        closeSignal.afterDestroyConsumer();
+        logger.info("mysql start to shutdown");
+        // 关闭mysql连接
+        MysqlOffsetPersist.getInstance().shutdown();
+    }
+
+    public void destroy(long stopTimeOut) {
+        MysqlOffsetPersist.destoryFlag = true;
+        stop(stopTimeOut);
         closeSignal.afterDestroyConsumer();
         logger.info("mysql start to shutdown");
         // 关闭mysql连接

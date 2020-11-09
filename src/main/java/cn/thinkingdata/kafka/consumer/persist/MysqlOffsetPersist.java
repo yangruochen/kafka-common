@@ -9,6 +9,7 @@ import cn.thinkingdata.kafka.util.RetryerUtil;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.google.common.base.Predicates;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,7 +167,7 @@ public class MysqlOffsetPersist extends Thread implements OffsetPersist {
 
     private synchronized void persisit() {
         Date now = new Date();
-        for (KafkaConsumerOffset kafkaConsumerOffsetInCache : KafkaCache.kafkaConsumerOffsets) {
+        for (KafkaConsumerOffset kafkaConsumerOffsetInCache : KafkaCache.kafkaConsumerOffsetMaps.values()) {
             // 根据同步offset的size，同步offset的时间
             Long lag = kafkaConsumerOffsetInCache.getOffset()
                     - kafkaConsumerOffsetInCache.getLast_flush_offset();
@@ -252,8 +253,12 @@ public class MysqlOffsetPersist extends Thread implements OffsetPersist {
             externalStorePersist
                     .executeWhenSaveOffsetFailInMysqlAndExternalStore(kafkaConsumerOffset);
         }
+        TopicPartition topicPartition = new TopicPartition(kafkaConsumerOffset.getTopic(), kafkaConsumerOffset.getPartition());
+        KafkaConsumerOffset kafkaConsumerOffsetInMap = KafkaCache.kafkaConsumerOffsetMaps.get(topicPartition);
+        if(kafkaConsumerOffsetInMap != null && kafkaConsumerOffsetInMap.equals(kafkaConsumerOffset)){
+            KafkaCache.kafkaConsumerOffsetMaps.remove(topicPartition);
+        }
 
-        KafkaCache.kafkaConsumerOffsets.remove(kafkaConsumerOffset);
 
         kafkaConsumerOffset.setOwner("");
         updateOwner(kafkaConsumerOffset);

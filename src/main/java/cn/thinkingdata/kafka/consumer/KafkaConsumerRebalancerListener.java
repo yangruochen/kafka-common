@@ -41,13 +41,11 @@ public class KafkaConsumerRebalancerListener implements
 			Collection<TopicPartition> partitions) {
 		logger.info("start onPartitionsRevoked!");
 		for (TopicPartition partition : partitions) {
-			KafkaConsumerOffset kafkaConsumerOffset = KafkaCache
-					.searchKafkaConsumerOffset(partition.topic(),
-							partition.partition());
+			KafkaConsumerOffset kafkaConsumerOffset = KafkaCache.kafkaConsumerOffsetMaps.get(partition);
 			if (kafkaConsumerOffset != null) {
 				kafkaConsumerOffset.setOffset(consumer
 						.position(partition));
-				KafkaCache.kafkaConsumerOffsets.add(kafkaConsumerOffset);
+				KafkaCache.kafkaConsumerOffsetMaps.put(partition, kafkaConsumerOffset);
 				MysqlOffsetPersist.getInstance().flush(kafkaConsumerOffset);
 				//删除kafkaConsumerOffsetSet里的kafkaConsumerOffset
 				for (KafkaSubscribeConsumeThread consumeThread : KafkaCache.consumeThreadList) {
@@ -78,12 +76,11 @@ public class KafkaConsumerRebalancerListener implements
 		logger.info("start onPartitionsAssigned!");
 		Date now = new Date();
 		for (TopicPartition partition : partitions) {
-			// TODO 改动源码查找partition里的logsize,然后和mysql,redis里的offset进行比较，取最小值
 			consumer.seek(partition,offsetManager.readOffsetFromCache(partition.topic(), partition.partition()).getOffset());
-			KafkaConsumerOffset kafkaConsumerOffset = KafkaCache.searchKafkaConsumerOffset(partition.topic(), partition.partition());
+			TopicPartition topicPartition = new TopicPartition(partition.topic(),partition.partition());
+			KafkaConsumerOffset kafkaConsumerOffset = KafkaCache.kafkaConsumerOffsetMaps.get(topicPartition);
 			// 设定owner
-			kafkaConsumerOffset
-					.setOwner(KafkaMysqlOffsetParameter.kafkaClusterName
+			kafkaConsumerOffset.setOwner(KafkaMysqlOffsetParameter.kafkaClusterName
 							+ "-"
 							+ partition.topic()
 							+ "-"

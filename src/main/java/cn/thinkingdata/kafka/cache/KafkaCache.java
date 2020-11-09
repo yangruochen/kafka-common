@@ -1,38 +1,19 @@
 package cn.thinkingdata.kafka.cache;
 
-import cn.thinkingdata.kafka.constant.KafkaMysqlOffsetParameter;
 import cn.thinkingdata.kafka.consumer.KafkaConsumerRebalancerListener;
 import cn.thinkingdata.kafka.consumer.KafkaSubscribeConsumeThread;
 import cn.thinkingdata.kafka.consumer.dao.KafkaConsumerOffset;
+import org.apache.kafka.common.TopicPartition;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class KafkaCache {
 
-	public static Set<KafkaConsumerOffset> kafkaConsumerOffsets = ConcurrentHashMap
-			.newKeySet();
+	public static Map<TopicPartition, KafkaConsumerOffset> kafkaConsumerOffsetMaps = new ConcurrentHashMap();
 	public static List<KafkaSubscribeConsumeThread> consumeThreadList = new CopyOnWriteArrayList<KafkaSubscribeConsumeThread>();
 	public static List<KafkaConsumerRebalancerListener> rebalancerListenerList = new CopyOnWriteArrayList<KafkaConsumerRebalancerListener>();
-
-	public static KafkaConsumerOffset searchKafkaConsumerOffset(String topic,
-                                                                int partition) {
-		KafkaConsumerOffset kafkaConsumerOffset = new KafkaConsumerOffset();
-		kafkaConsumerOffset
-				.setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
-		kafkaConsumerOffset.setTopic(topic);
-		kafkaConsumerOffset.setPartition(partition);
-		kafkaConsumerOffset
-				.setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
-		for (KafkaConsumerOffset kafkaConsumerOffsetInCache : KafkaCache.kafkaConsumerOffsets) {
-			if (kafkaConsumerOffset.equals(kafkaConsumerOffsetInCache)) {
-				kafkaConsumerOffset = kafkaConsumerOffsetInCache;
-				return kafkaConsumerOffset;
-			}
-		}
-		return null;
-	}
 
 }

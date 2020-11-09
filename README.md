@@ -23,6 +23,9 @@ CREATE TABLE `kafka_consumer_offset` (
 
 
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
+# 2020/11/06
+version 0.2.1 fix bug, replace stop(timeout) to stopWithException, optimize the time complexity
+
 # 2020/03/19
 version 0.2.0 fix bug, change KafkaSubscribeConsumer constructor, kafka-client change to 2.3.0
 

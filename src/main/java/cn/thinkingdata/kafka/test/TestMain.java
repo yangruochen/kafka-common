@@ -22,7 +22,7 @@ public class TestMain {
 	private static final Logger logger = LoggerFactory
 			.getLogger(TestMain.class);
 
-	static String jdbcUrl = "jdbc:mysql://mysql-test:3306/ta?autoReconnect=true&amp;useUnicode=true";
+	static String jdbcUrl = "jdbc:mysql://ta1:3306/ta?autoReconnect=true&amp;useUnicode=true";
 	static String dataProcessNum = "3";
 	static KafkaSubscribeConsumer consumers;
 
@@ -77,7 +77,7 @@ public class TestMain {
         Map<String, String> map = new HashMap<>();
 		map.put("jdbc.url",jdbcUrl);
 		map.put("username","ta");
-		map.put("password","TaThinkingData");
+		map.put("password","ThinkingData2018");
 		map.put("table.name","kafka_consumer_offset");
 		map.put("broker.list",brokerList);
 		map.put("kafka.cluster.name",kafkaClusterName);
