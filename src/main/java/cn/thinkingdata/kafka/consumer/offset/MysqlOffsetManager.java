@@ -30,35 +30,15 @@ public class MysqlOffsetManager extends OffsetManager {
     }
 
     DBPoolConnection dbp = DBPoolConnection.getInstance();
-//    Connection conn;
-//    String driver = "com.mysql.jdbc.Driver";
 
     private MysqlOffsetManager() {
-
-//        try {
-//            Class.forName(driver);
-//            conn = DriverManager.getConnection(
-//                    KafkaMysqlOffsetParameter.jdbcUrl,
-//                    KafkaMysqlOffsetParameter.username,
-//                    KafkaMysqlOffsetParameter.password);
-//            if (!conn.isClosed())
-//                System.out.println("Succeeded connecting to the Database!");
-//        } catch (Exception e) {
-//            logger.error("connect to mysql error, the error is "
-//                    + CommonUtils.getStackTraceAsString(e));
-//        }
-
     }
 
     //去掉synchronized，因为MysqlOffsetPersist的flush和persist里有synchronized方法
     @Override
-    protected Boolean saveOffsetInExternalStore(
-            KafkaConsumerOffset kafkaConsumerOffset) {
-        logger.debug("because of the muti-thread, the value is not exactly right, kafkaConsumerOffset is "
-                + kafkaConsumerOffset.toString());
-        Connection conn = null;
-        try {
-            conn = dbp.getConnection();
+    protected Boolean saveOffsetInExternalStore(KafkaConsumerOffset kafkaConsumerOffset) {
+        logger.debug("because of the muti-thread, the value is not exactly right, kafkaConsumerOffset is " + kafkaConsumerOffset.toString());
+        try (Connection conn = dbp.getConnection()) {
             String sql = "INSERT INTO "
                     + KafkaMysqlOffsetParameter.tableName
                     + " VALUES"
@@ -73,30 +53,18 @@ public class MysqlOffsetManager extends OffsetManager {
             ps.setLong(4, kafkaConsumerOffset.getOffset());
             ps.setString(6, kafkaConsumerOffset.getKafka_cluster_name());
             ps.setString(7, kafkaConsumerOffset.getOwner());
-            ps.setTimestamp(8, new Timestamp(kafkaConsumerOffset
-                    .getUpdate_time().getTime()));
-            ps.setTimestamp(9, new Timestamp(kafkaConsumerOffset
-                    .getCreate_time().getTime()));
+            ps.setTimestamp(8, new Timestamp(kafkaConsumerOffset.getUpdate_time().getTime()));
+            ps.setTimestamp(9, new Timestamp(kafkaConsumerOffset.getCreate_time().getTime()));
             ps.setLong(11, kafkaConsumerOffset.getLast_flush_offset());
             ps.setLong(10, kafkaConsumerOffset.getOffset());
             ps.setString(12, kafkaConsumerOffset.getKafka_cluster_name());
             ps.setString(13, kafkaConsumerOffset.getOwner());
-            ps.setTimestamp(14, new Timestamp(kafkaConsumerOffset
-                    .getUpdate_time().getTime()));
-            Boolean result = ps.execute();
+            ps.setTimestamp(14, new Timestamp(kafkaConsumerOffset.getUpdate_time().getTime()));
+            ps.execute();
             return true;
         } catch (SQLException e) {
-            logger.error("mysql save offset error, the error is "
-                    + CommonUtils.getStackTraceAsString(e));
+            logger.error("mysql save offset error, the error is " + CommonUtils.getStackTraceAsString(e));
             return false;
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    logger.error("close mysql conn from DBPoolConnection error, the error is " + CommonUtils.getStackTraceAsString(e));
-                }
-            }
         }
     }
 
@@ -104,20 +72,14 @@ public class MysqlOffsetManager extends OffsetManager {
     protected KafkaConsumerOffset readOffsetFromExternalStore(String topic,
                                                               int partition) {
         KafkaConsumerOffset kafkaConsumerOffset = new KafkaConsumerOffset();
-        Statement statement = null;
-        ResultSet rs = null;
         Date now = new Date();
-        Connection conn = null;
-        try {
-            conn = dbp.getConnection();
-            statement = conn.createStatement();
-            String sql = "select * from " + KafkaMysqlOffsetParameter.tableName
-                    + " where kafka_cluster_name = '"
-                    + KafkaMysqlOffsetParameter.kafkaClusterName
-                    + "' and topic = '" + topic + "' and kafka_partition = "
-                    + partition + " and consumer_group = '"
-                    + KafkaMysqlOffsetParameter.consumerGroup + "';";
-            rs = statement.executeQuery(sql);
+        String sql = "select * from " + KafkaMysqlOffsetParameter.tableName
+                + " where kafka_cluster_name = '"
+                + KafkaMysqlOffsetParameter.kafkaClusterName
+                + "' and topic = '" + topic + "' and kafka_partition = "
+                + partition + " and consumer_group = '"
+                + KafkaMysqlOffsetParameter.consumerGroup + "';";
+        try (Connection conn = dbp.getConnection(); Statement statement = conn.createStatement(); ResultSet rs = statement.executeQuery(sql)){
             int count = 0;
             while (rs.next()) {
                 count++;
@@ -135,12 +97,10 @@ public class MysqlOffsetManager extends OffsetManager {
                 kafkaConsumerOffset.setOid(rs.getInt("oid"));
                 kafkaConsumerOffset.setTopic(topic);
                 kafkaConsumerOffset.setPartition(partition);
-                kafkaConsumerOffset
-                        .setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
+                kafkaConsumerOffset.setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
                 kafkaConsumerOffset.setOffset(rs.getLong("offset"));
                 kafkaConsumerOffset.setLast_flush_offset(rs.getLong("offset"));
-                kafkaConsumerOffset
-                        .setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
+                kafkaConsumerOffset.setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
                 kafkaConsumerOffset.setOwner(rs.getString("owner"));
                 kafkaConsumerOffset.setCount(0L);
                 kafkaConsumerOffset.setUpdate_time(rs.getDate("update_time"));
@@ -156,99 +116,48 @@ public class MysqlOffsetManager extends OffsetManager {
                         + KafkaMysqlOffsetParameter.consumerGroup);
                 kafkaConsumerOffset.setTopic(topic);
                 kafkaConsumerOffset.setPartition(partition);
-                kafkaConsumerOffset
-                        .setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
+                kafkaConsumerOffset.setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
                 kafkaConsumerOffset.setOffset(0L);
                 kafkaConsumerOffset.setLast_flush_offset(0L);
-                kafkaConsumerOffset
-                        .setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
+                kafkaConsumerOffset.setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
                 kafkaConsumerOffset.setCount(0L);
                 kafkaConsumerOffset.setUpdate_time(now);
                 return kafkaConsumerOffset;
             }
         } catch (Exception e) {
-            logger.error("mysql read offset error, the error is "
-                    + CommonUtils.getStackTraceAsString(e));
+            logger.error("mysql read offset error, the error is " + CommonUtils.getStackTraceAsString(e));
             return null;
-        } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-                statement.close();
-            } catch (SQLException e) {
-                logger.error("can not close the ResultSet or the Statement of mysql, the error is "
-                        + CommonUtils.getStackTraceAsString(e));
-            }
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    logger.error("close mysql conn from DBPoolConnection error, the error is " + CommonUtils.getStackTraceAsString(e));
-                }
-            }
         }
         return kafkaConsumerOffset;
     }
-
-    // public void saveAllOffsetInCacheToMysql() {
-    // for (KafkaConsumerOffset kafkaConsumerOffset :
-    // KafkaCache.kafkaConsumerOffsets) {
-    // saveOffsetInCacheToMysql(kafkaConsumerOffset);
-    // }
-    // }
 
     public void shutdown() {
         logger.info("mysql shutdown!");
         try {
             dbp.close();
         } catch (Exception e) {
-            logger.error("can not close mysql connection pool, the error is "
-                    + CommonUtils.getStackTraceAsString(e));
+            logger.error("can not close mysql connection pool, the error is " + CommonUtils.getStackTraceAsString(e));
         }
     }
 
     //去掉synchronized，因为MysqlOffsetPersist的flush和persist里有synchronized方法
-    public Boolean saveOffsetInCacheToMysql(
-            KafkaConsumerOffset kafkaConsumerOffset) {
-        Long lag = kafkaConsumerOffset.getOffset()
-                - kafkaConsumerOffset.getLast_flush_offset();
+    public Boolean saveOffsetInCacheToMysql(KafkaConsumerOffset kafkaConsumerOffset) {
+        Long lag = kafkaConsumerOffset.getOffset() - kafkaConsumerOffset.getLast_flush_offset();
         if (!lag.equals(0L)) {
-            logger.debug("because of the muti-thread, the value is not exactly right, the lag is "
-                    + lag);
+            logger.debug("because of the muti-thread, the value is not exactly right, the lag is " + lag);
             return saveOffsetInExternalStore(kafkaConsumerOffset);
         }
-//		else {
-//			logger.debug("the lag is 0, the kafkaConsumerOffset is "
-//					+ kafkaConsumerOffset);
-//		}
         return true;
     }
 
     public Boolean mysqlStateCheck() {
-        Statement statement = null;
-        ResultSet rs = null;
-        String sql = "select * from " + KafkaMysqlOffsetParameter.tableName
-                + " limit 10;";
-        Connection conn = null;
-        try {
-            conn = dbp.getConnection();
-            statement = conn.createStatement();
-            rs = statement.executeQuery(sql);
+        String sql = "select * from " + KafkaMysqlOffsetParameter.tableName + " limit 10;";
+        try (Connection conn = dbp.getConnection(); Statement statement = conn.createStatement()) {
             logger.info("mysql reconnected!");
+            statement.execute(sql);
             return true;
         } catch (SQLException e) {
             return false;
-            // logger.error("can not connect to mysql, the error is "
-            // + e.toString());
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    logger.error("close mysql conn from DBPoolConnection error, the error is " + CommonUtils.getStackTraceAsString(e));
-                }
-            }
         }
     }
 
@@ -256,14 +165,9 @@ public class MysqlOffsetManager extends OffsetManager {
         logger.debug("update the owner for kafkaConsumerOffset, kafkaConsumerOffset is "
                 + kafkaConsumerOffset.toString());
         Date now = new Date();
-        Statement statement = null;
-        Boolean rs = null;
         Boolean flag = true;
-        Connection conn = null;
-        try {
-            conn = dbp.getConnection();
-            statement = conn.createStatement();
-            if(kafkaConsumerOffset.getOffset() == 0L ){
+        try (Connection conn = dbp.getConnection(); Statement statement = conn.createStatement()){
+            if (kafkaConsumerOffset.getOffset() == 0L) {
                 kafkaConsumerOffset.setUpdate_time(now);
                 if (kafkaConsumerOffset.getCreate_time() == null)
                     kafkaConsumerOffset.setCreate_time(now);
@@ -278,10 +182,9 @@ public class MysqlOffsetManager extends OffsetManager {
                         + kafkaConsumerOffset.getPartition()
                         + " and consumer_group = '"
                         + KafkaMysqlOffsetParameter.consumerGroup + "';";
-                rs = statement.execute(sql);
+                statement.execute(sql);
             }
-
-            if(flag){
+            if (flag) {
                 KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.set(true);
                 return true;
             } else {
@@ -292,17 +195,8 @@ public class MysqlOffsetManager extends OffsetManager {
 
         } catch (SQLException e) {
             KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.set(false);
-            logger.error("mysql update the owner error, the error is "
-                    + CommonUtils.getStackTraceAsString(e));
+            logger.error("mysql update the owner error, the error is " + CommonUtils.getStackTraceAsString(e));
             return false;
-        } finally {
-            if(conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    logger.error("close mysql conn from DBPoolConnection error, the error is " + CommonUtils.getStackTraceAsString(e));
-                }
-            }
         }
     }
 }

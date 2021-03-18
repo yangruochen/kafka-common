@@ -21,7 +21,7 @@ public class RetryerUtil {
 
     public static Retryer initRetryerByTimesWithIfResult(int retryTimes,long sleepMilliseconds, Predicate predicate){
         Retryer retryer = RetryerBuilder.newBuilder().retryIfException().retryIfResult(predicate)
-                .withWaitStrategy(WaitStrategies.fixedWait(sleepMilliseconds, TimeUnit.MILLISECONDS))
+                .withWaitStrategy(WaitStrategies.fixedWait(sleepMilliseconds,TimeUnit.MILLISECONDS))
                 .withStopStrategy(StopStrategies.stopAfterAttempt(retryTimes))
                 .withRetryListener(new RetryListener() {
                     @Override
@@ -32,40 +32,6 @@ public class RetryerUtil {
                         if(attempt.getAttemptNumber() > 1L){
                         	logger.info("开始进行失败重试，重试次数：" + attempt.getAttemptNumber() + "， 距离第一次失败时间：" + attempt.getDelaySinceFirstAttempt() + "毫秒");
                         }
-                    }
-                })
-                .build();
-        return retryer;
-    }
-    
-//    public static Retryer initRetryerWithIfResult(Predicate predicate){
-//        Retryer retryer = RetryerBuilder.newBuilder().retryIfException().retryIfResult(predicate)
-//                .withWaitStrategy(WaitStrategies.fibonacciWait(500,5, TimeUnit.MINUTES))
-//                .withStopStrategy(StopStrategies.neverStop())
-//                .withRetryListener(new RetryListener() {
-//                    @Override
-//                    public <V> void onRetry(Attempt<V> attempt) {
-//                        if (attempt.hasException()){
-//                            logger.error(Throwables.getStackTraceAsString(attempt.getExceptionCause()));
-//                        }
-//                        logger.info("开始进行失败重试，重试次数：" + attempt.getAttemptNumber() + "， 距离第一次失败时间：" + attempt.getDelaySinceFirstAttempt() + "毫秒");
-//                    }
-//                })
-//                .build();
-//        return retryer;
-//    }
-    
-    public static Retryer initRetryerWithStopTimeIfResult(long stopInSecond, Predicate predicate){
-        Retryer retryer = RetryerBuilder.newBuilder().retryIfException().retryIfResult(predicate)
-                .withWaitStrategy(WaitStrategies.fibonacciWait(500,1, TimeUnit.MINUTES))
-                .withStopStrategy(StopStrategies.stopAfterDelay(stopInSecond, TimeUnit.SECONDS))
-                .withRetryListener(new RetryListener() {
-                    @Override
-                    public <V> void onRetry(Attempt<V> attempt) {
-                        if (attempt.hasException()){
-                            logger.error(Throwables.getStackTraceAsString(attempt.getExceptionCause()));
-                        }
-                        logger.info("开始进行失败重试，重试次数：" + attempt.getAttemptNumber() + "， 距离第一次失败时间：" + attempt.getDelaySinceFirstAttempt() + "毫秒");
                     }
                 })
                 .build();

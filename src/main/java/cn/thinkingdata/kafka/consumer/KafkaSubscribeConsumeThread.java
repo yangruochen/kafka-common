@@ -8,7 +8,7 @@ import cn.thinkingdata.kafka.consumer.offset.OffsetManager;
 import cn.thinkingdata.kafka.consumer.persist.MysqlOffsetPersist;
 import cn.thinkingdata.kafka.util.CommonUtils;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -34,17 +34,16 @@ import java.util.stream.Collectors;
 
 public class KafkaSubscribeConsumeThread implements Runnable {
 
-    private static final Logger logger = LoggerFactory
-            .getLogger(KafkaSubscribeConsumeThread.class);
-    private NewIDataLineProcessor dataProcessor;
+    private static final Logger logger = LoggerFactory.getLogger(KafkaSubscribeConsumeThread.class);
+    private final NewIDataLineProcessor dataProcessor;
     public KafkaConsumer<String, String> consumer;
-    private OffsetManager offsetManager = MysqlOffsetManager.getInstance();
+    private final OffsetManager offsetManager = MysqlOffsetManager.getInstance();
     public volatile Boolean kafkaPollFlag = false;
     public volatile Boolean kafkaConsumerFlag = false;
     // public volatile Boolean offsetFlushFlag = false;
-    private CyclicBarrier offsetFlushBarrier;
+    private final CyclicBarrier offsetFlushBarrier;
     public volatile Collection<TopicPartition> assignedPartitions = null;
-    private BlockingQueue<ConsumerRecord<String, String>> unsent = new LinkedBlockingQueue<>();
+    private final BlockingQueue<ConsumerRecord<String, String>> unsent = new LinkedBlockingQueue<>();
     public Set<KafkaConsumerOffset> kafkaConsumerOffsetSet = new HashSet<KafkaConsumerOffset>();
     // records的初始值是1000，所以这边capacity的值设为3000
     private final BlockingQueue<ConsumerRecord<String, String>> processDataQueue =
@@ -60,8 +59,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
      */
     private volatile Boolean paused = false;
 
-    public KafkaSubscribeConsumeThread(KafkaConsumer<String, String> consumer,
-                                       NewIDataLineProcessor dataProcessor, CyclicBarrier offsetFlushBarrier) {
+    public KafkaSubscribeConsumeThread(KafkaConsumer<String, String> consumer, NewIDataLineProcessor dataProcessor, CyclicBarrier offsetFlushBarrier) {
         this.consumer = consumer;
         this.dataProcessor = dataProcessor;
         this.offsetFlushBarrier = offsetFlushBarrier;
@@ -75,8 +73,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
         new Thread(processDataWorker, consumerThread.getName() + "-" + "working thread").start();
         Set<ConsumerRecord<String, String>> lastConsumerRecordSet = new HashSet<ConsumerRecord<String, String>>();
         Long count = 0L;
-        DateTime sessionTimeoutDataTime = new DateTime().plusSeconds(Integer
-                .parseInt(KafkaMysqlOffsetParameter.sessionTimeout));
+        DateTime sessionTimeoutDataTime = new DateTime().plusSeconds(Integer.parseInt(KafkaMysqlOffsetParameter.sessionTimeout));
         try {
             while (!KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.get()) {
                 if (KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.get()) {
@@ -89,6 +86,10 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         try {
                             records = consumer.poll(KafkaMysqlOffsetParameter.pollInterval);
                         } catch (OffsetOutOfRangeException e) {
+                            logger.error("consumer poll out of range, the error is " + CommonUtils.getStackTraceAsString(e));
+                            for (TopicPartition topicPartition : consumer.assignment()) {
+                                logger.error("the topicPartition is " + topicPartition.toString() + ",the offset is " + consumer.position(topicPartition));
+                            }
                             synchronized (OffsetManager.class) {
                                 MysqlOffsetManager.getInstance().getExternalStorePersist().executeWhenOffsetReset(this);
                             }
@@ -114,7 +115,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                                 // 休息30豪秒
                                 Thread.sleep(30);
                             }
-                            if(CollectionUtils.isNotEmpty(assignedPartitions)) {
+                            if (CollectionUtils.isNotEmpty(assignedPartitions)) {
                                 for (TopicPartition assignedPartition : assignedPartitions) {
                                     List<ConsumerRecord<String, String>> recordsListPerPartition = records.records(assignedPartition);
                                     if (CollectionUtils.isNotEmpty(recordsListPerPartition)) {
@@ -136,14 +137,12 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         break;
                     }
                 } else {
-                    logger.info("mysql and backup store connect error, the mysqlAndBackupStoreConnState is "
-                            + KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.get());
+                    logger.info("mysql and backup store connect error, the mysqlAndBackupStoreConnState is " + KafkaMysqlOffsetParameter.mysqlAndBackupStoreConnState.get());
                     kafkaPollFlag = false;
                     try {
                         Thread.sleep(50);
                     } catch (InterruptedException e) {
-                        logger.error("------- thread can not sleep ---------------------"
-                                + e.toString());
+                        logger.error("------- thread can not sleep ---------------------" + e.toString());
                     }
                 }
             }
@@ -194,7 +193,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
     private void saveLastConsumerRecordSet(KafkaSubscribeConsumeThread consumeThread, Set<ConsumerRecord<String, String>> lastConsumerRecordSet, Long count, Boolean cleanOwner) {
         for (ConsumerRecord<String, String> lastConsumerRecord : lastConsumerRecordSet) {
             Date now = new Date();
-            TopicPartition topicPartition = new TopicPartition(lastConsumerRecord.topic(),lastConsumerRecord.partition());
+            TopicPartition topicPartition = new TopicPartition(lastConsumerRecord.topic(), lastConsumerRecord.partition());
             KafkaConsumerOffset kafkaConsumerOffset = KafkaCache.kafkaConsumerOffsetMaps.get(topicPartition);
             if (kafkaConsumerOffset == null) {
                 logger.error("kafkaConsumerOffset is null in cache, the lastConsumerRecord is "
@@ -219,13 +218,11 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                                 + KafkaMysqlOffsetParameter.hostname
                                 + "-"
                                 + consumer.toString().substring(
-                                consumer.toString()
-                                        .lastIndexOf("@") + 1));
+                                consumer.toString().lastIndexOf("@") + 1));
             }
             kafkaConsumerOffset.setTopic(lastConsumerRecord.topic());
             kafkaConsumerOffset.setPartition(lastConsumerRecord.partition());
-            kafkaConsumerOffset
-                    .setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
+            kafkaConsumerOffset.setConsumer_group(KafkaMysqlOffsetParameter.consumerGroup);
             kafkaConsumerOffset.setOffset(lastConsumerRecord.offset() + 1L);
             kafkaConsumerOffset.setKafka_cluster_name(KafkaMysqlOffsetParameter.kafkaClusterName);
             kafkaConsumerOffset.setCount(count);
@@ -235,7 +232,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 logger.info("clean owner, the thread is " + Thread.currentThread().getName() + ", the kafkaConsumerOffset is " + kafkaConsumerOffset.toString());
             }
             kafkaConsumerOffsetSet.add(kafkaConsumerOffset);
-            offsetManager.saveOffsetInCache(consumeThread,kafkaConsumerOffset);
+            offsetManager.saveOffsetInCache(consumeThread, kafkaConsumerOffset);
         }
     }
 
@@ -251,19 +248,17 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
-                    logger.error("------- thread can not sleep ---------------------"
-                            + e.toString());
+                    logger.error("------- thread can not sleep ---------------------" + e.toString());
                 }
             }
         }
         logger.info("flush before kafka consumer close");
         logger.debug("kafkaConsumerOffsetMaps is "
                 + Arrays.toString(KafkaCache.kafkaConsumerOffsetMaps.entrySet().toArray()));
-        logger.debug("kafkaConsumerOffsetSet is " + kafkaConsumerOffsetSet
-                + " ,the thread is " + Thread.currentThread().getName());
+        logger.debug("kafkaConsumerOffsetSet is " + kafkaConsumerOffsetSet + " ,the thread is " + Thread.currentThread().getName());
         try {
             for (KafkaConsumerOffset kafkaConsumerOffset : kafkaConsumerOffsetSet) {
-                TopicPartition topicPartition = new TopicPartition(kafkaConsumerOffset.getTopic(),kafkaConsumerOffset.getPartition());
+                TopicPartition topicPartition = new TopicPartition(kafkaConsumerOffset.getTopic(), kafkaConsumerOffset.getPartition());
                 KafkaConsumerOffset kafkaConsumerOffsetInCache = KafkaCache.kafkaConsumerOffsetMaps.get(topicPartition);
                 // 因为有Marking the coordinator
                 // dead的情况，所以可能kafkaConsumerOffsetSet里有该partition，
@@ -273,8 +268,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                     // 因为有可能mysql里的kafka_consumer_offset为空，consumer拿lastest，这时候的offset不是0，是lastest，是需要保存的
                     Long consumerPosition = null;
                     try {
-                        consumerPosition = consumer
-                                .position(topicPartition);
+                        consumerPosition = consumer.position(topicPartition);
                     } catch (Exception e) {
                         logger.info("the consumer get position error, the error is "
                                 + e.toString()
@@ -303,19 +297,6 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                             + Arrays.toString(KafkaCache.kafkaConsumerOffsetMaps.entrySet().toArray()));
                 }
             }
-            // 之前的kafkaConsumerOffsetSet可能为空，所以需要最后测算一下kafkaConsumerOffsets里是否有空余的
-            // offsetFlushFlag = true;
-            // for (;;) {
-            // Boolean allOffsetFlushFlag = true;
-            // for (KafkaSubscribeConsumeThread consumeThread :
-            // KafkaCache.consumeThreadList) {
-            // if (consumeThread != null
-            // && !consumeThread.offsetFlushFlag)
-            // allOffsetFlushFlag = false;
-            // }
-            // if (allOffsetFlushFlag)
-            // break;
-            // }
             offsetFlushBarrier.await();
             logger.info("start to flush the rest KafkaCache.kafkaConsumerOffsetMaps "
                     + Arrays.toString(KafkaCache.kafkaConsumerOffsetMaps.entrySet().toArray())
@@ -324,8 +305,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
             flushKafkaConsumerOffsetsInKafkaCache();
             consumer.close();
         } catch (Exception e) {
-            logger.error("close consumer error, the exception is "
-                    + CommonUtils.getStackTraceAsString(e));
+            logger.error("close consumer error, the exception is " + CommonUtils.getStackTraceAsString(e));
             consumer.close();
         }
         kafkaConsumerFlag = false;
@@ -333,31 +313,11 @@ public class KafkaSubscribeConsumeThread implements Runnable {
         logger.info("kafka consumer finally close");
     }
 
-    private KafkaConsumerOffset searchKafkaConsumerOffsetSet(
-            Set<KafkaConsumerOffset> kafkaConsumerOffsetSet,
-            KafkaConsumerOffset kafkaConsumerOffset) {
-        for (KafkaConsumerOffset KafkaConsumerOffsetInSet : kafkaConsumerOffsetSet) {
-            if (KafkaConsumerOffsetInSet.getTopic().equals(
-                    kafkaConsumerOffset.getTopic())
-                    && KafkaConsumerOffsetInSet.getPartition().equals(kafkaConsumerOffset
-                    .getPartition())) {
-                return KafkaConsumerOffsetInSet;
-            }
-        }
-        return null;
-    }
-
     private synchronized void flushKafkaConsumerOffsetsInKafkaCache() {
-
         for (KafkaConsumerOffset kafkaConsumerOffset : KafkaCache.kafkaConsumerOffsetMaps.values()) {
             logger.info("kafkaConsumerOffset in cache is not be consumed, kafkaConsumerOffset is "
                     + kafkaConsumerOffset);
             // 因为有可能mysql里的kafka_consumer_offset为空，consumer拿lastest，这时候的offset不是0，是lastest，是需要保存的
-            // TopicPartition topicPartition = new TopicPartition(
-            // kafkaConsumerOffset.getTopic(),
-            // kafkaConsumerOffset.getPartition());
-            // Long consumerPosition = consumer.position(topicPartition);
-
             TopicPartition topicPartition = new TopicPartition(
                     kafkaConsumerOffset.getTopic(),
                     kafkaConsumerOffset.getPartition());
@@ -366,7 +326,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                 consumerPosition = consumer.position(topicPartition);
             } catch (IllegalArgumentException | IllegalStateException e) {
                 logger.info("flushKafkaConsumerOffsetsInKafkaCache, the consumer get position error, the error is "
-                        + CommonUtils.getStackTraceAsString(e)
+                        + e.toString()
                         + ", the topicPartition is "
                         + topicPartition);
             }
@@ -464,8 +424,7 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         try {
                             Thread.sleep(10);
                         } catch (InterruptedException e) {
-                            logger.error("------- thread can not sleep ---------------------"
-                                    + e.toString());
+                            logger.error("------- thread can not sleep ---------------------" + e.toString());
                         }
                     }
                 } else {
@@ -500,20 +459,6 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                         break;
                     }
                 }
-//            } catch (InterruptedException e) {
-//                logger.info("processDataWorker thread is interrupted");
-//                // 现在先把queue清空
-//                while (processDataQueue.size() != 0) {
-//                    try {
-//                        processOperationData();
-//                    } catch (InterruptedException e1) {
-//                        logger.error("processDataWorker thread is abnormal interrupted in stopping, the error is "
-//                                + e1.toString());
-//                    } catch (Exception e1) {
-//                        logger.error("processDataWorker thread is failed in stopping, the error is "
-//                                + e1.toString());
-//                    }
-//                }
             } catch (Exception e) {
                 logger.error("processDataWorker thread is failed, the error is " + e.toString());
             } finally {
@@ -548,7 +493,6 @@ public class KafkaSubscribeConsumeThread implements Runnable {
 
 
         private void stop() {
-//            try {
             // 等待拉取动作结束
             for (; ; ) {
                 if (kafkaPollFlag == false) {
@@ -561,40 +505,8 @@ public class KafkaSubscribeConsumeThread implements Runnable {
                     }
                 }
             }
-//            this.executingThread.interrupt();
             workerStopFlag = true;
-            //1分钟之后，强制退出
-//                if (!this.exitLatch.await(60000, TimeUnit.MILLISECONDS)
-//                        && this.executingThread != null) {
-//                    this.executingThread.interrupt();
-//                }
-//            }
-//            catch (InterruptedException e) {
-//                logger.error("processDataWorker stop thread is abnormal interrputed, the error is "
-//                        + e.toString());
-//                if (this.executingThread != null) {
-//                    this.executingThread.interrupt();
-//                }
-//            } finally {
-            //TODO 二期queue和unsent没有清空数据持久化到磁盘
-//                if(unsent.size() > 0){
-//                    writeUnsentToDisk(unsent);
-//                }
-//                if(processDataQueue.size() > 0){
-//                    writeProcessDataQueueToDisk(processDataQueue);
-//                }
-//            }
         }
-
-//        private void writeProcessDataQueueToDisk(BlockingQueue<ConsumerRecord<String, String>> processDataQueue) {
-//            String fileName = getWriteDiskFileName("processDataQueue");
-//
-//        }
-//
-//        private void writeUnsentToDisk(List<ConsumerRecord<String, String>> unsentList) {
-//            String fileName = getWriteDiskFileName("unsent");
-//
-//        }
     }
 }
 

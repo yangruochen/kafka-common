@@ -14,8 +14,7 @@ import java.util.Properties;
 
 public class DBPoolConnection {
 
-    private static final Logger logger = LoggerFactory
-            .getLogger(MysqlOffsetPersist.class);
+    private static final Logger logger = LoggerFactory.getLogger(MysqlOffsetPersist.class);
     private static DBPoolConnection dbPoolConnection = null;
     private static DruidDataSource druidDataSource = null;
 
@@ -59,8 +58,7 @@ public class DBPoolConnection {
         return dbPoolConnection;
     }
 
-    private DBPoolConnection(){
-
+    private DBPoolConnection() {
     }
 
     /**
@@ -74,7 +72,7 @@ public class DBPoolConnection {
     }
 
     public void close() {
-       druidDataSource.close();
+        druidDataSource.close();
     }
 
 }
