@@ -13,7 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class KafkaCache {
 
     public static Map<TopicPartition, KafkaConsumerOffset> kafkaConsumerOffsetMaps = new ConcurrentHashMap();
-    public static List<KafkaSubscribeConsumeThread> consumeThreadList = new CopyOnWriteArrayList<KafkaSubscribeConsumeThread>();
-    public static List<KafkaConsumerRebalancerListener> rebalancerListenerList = new CopyOnWriteArrayList<KafkaConsumerRebalancerListener>();
+    public static List<KafkaSubscribeConsumeThread> consumeThreadList = new CopyOnWriteArrayList();
+    public static List<KafkaConsumerRebalancerListener> rebalancerListenerList = new CopyOnWriteArrayList();
 
 }
