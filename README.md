@@ -23,6 +23,15 @@ CREATE TABLE `kafka_consumer_offset` (
 
 
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
+
+maven central repo:
+
+<dependency>
+  <groupId>cn.thinkingdata</groupId>
+  <artifactId>kafka-common</artifactId>
+  <version>0.3.0</version>
+</dependency>
+
 # 2021/03/19
 version 0.3.0 reform code and public to central repo
 
