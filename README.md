@@ -24,7 +24,7 @@ CREATE TABLE `kafka_consumer_offset` (
 
 If you have any problems or you find any bugs, please do not hesitate to contact me(yangruochen@thinkingdata.cn).
 
-maven central repo:
+## maven central repo:
 ```xml
 <dependency>
   <groupId>cn.thinkingdata</groupId>
@@ -34,26 +34,26 @@ maven central repo:
 ```
 
 
-# 2021/03/19
+## 2021/03/19
 version 0.3.0 reform code and public to central repo
 
-# 2020/11/06
+## 2020/11/06
 version 0.2.1 fix bug, replace stop(timeout) to stopWithException, optimize the time complexity
 
-# 2020/03/19
+## 2020/03/19
 version 0.2.0 fix bug, change KafkaSubscribeConsumer constructor, kafka-client change to 2.3.0
 
-# 2019/08/21
+## 2019/08/21
 version 0.1.3 change name to kafka-common
 
-# 2019/08/21
+## 2019/08/21
 version 0.1.2 change new interface
 
-# 2019/07/24
+## 2019/07/24
 version 0.1.1 fix bug
 
-# 2019/07/19
+## 2019/07/19
 version 0.1.0 this version is used in our product (thinking analytics, see: https://www.thinkingdata.cn/manual.html), and it is served for more than 50 companies.
 
-# 2018/09/05
+## 2018/09/05
 version 0.0.2 fix the problems when the kafka coordinate dead
