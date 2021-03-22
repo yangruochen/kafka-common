@@ -29,7 +29,7 @@ If you have any problems or you find any bugs, please do not hesitate to contact
 <dependency>
   <groupId>cn.thinkingdata</groupId>
   <artifactId>kafka-common</artifactId>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 ## 2021/03/22
