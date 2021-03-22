@@ -32,7 +32,8 @@ If you have any problems or you find any bugs, please do not hesitate to contact
   <version>0.3.0</version>
 </dependency>
 ```
-
+## 2021/03/22
+version 0.3.1 fix bug
 
 ## 2021/03/19
 version 0.3.0 reform code and public to central repo
