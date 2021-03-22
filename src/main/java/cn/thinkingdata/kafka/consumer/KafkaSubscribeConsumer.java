@@ -4,7 +4,9 @@ import cn.thinkingdata.kafka.cache.KafkaCache;
 import cn.thinkingdata.kafka.close.DaemonCloseThread;
 import cn.thinkingdata.kafka.close.TermMethod;
 import cn.thinkingdata.kafka.constant.KafkaMysqlOffsetParameter;
+import cn.thinkingdata.kafka.consumer.offset.MysqlOffsetManager;
 import cn.thinkingdata.kafka.consumer.persist.MysqlOffsetPersist;
+import cn.thinkingdata.kafka.consumer.persist.StorePersist;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,11 @@ public class KafkaSubscribeConsumer {
         this.closeMethod = closeMethod;
     }
 
+    public KafkaSubscribeConsumer(Map<String, String> map, NewIDataLineProcessor dataProcessor, TermMethod closeMethod, StorePersist externalStorePersist){
+        this(map, dataProcessor, closeMethod);
+        MysqlOffsetManager.getInstance().setExternalStorePersist(externalStorePersist);
+    }
+
     public void run() {
         //判断mysql和redis是否通
         Boolean mysqlStateCheck = MysqlOffsetPersist.getInstance().mysqlStateCheckWithRetry();
@@ -47,7 +54,7 @@ public class KafkaSubscribeConsumer {
             System.exit(-1);
         }
         KafkaMysqlOffsetParameter.kafkaSubscribeConsumerClosed.set(false);
-        List<String> topicList = new ArrayList<String>();
+        List<String> topicList = new ArrayList();
         topicList.addAll(Arrays.asList(KafkaMysqlOffsetParameter.topic.split(",")));
         executorService = Executors.newFixedThreadPool(KafkaMysqlOffsetParameter.processThreadNum);
         CyclicBarrier offsetFlushBarrier = new CyclicBarrier(KafkaMysqlOffsetParameter.processThreadNum);
@@ -153,6 +160,9 @@ public class KafkaSubscribeConsumer {
         }
         logger.info("dataProcessor start to shutdown");
         dataProcessor.finishProcess();
+        KafkaCache.kafkaConsumerOffsetMaps.clear();
+        KafkaCache.consumeThreadList.clear();
+        KafkaCache.rebalancerListenerList.clear();
         closeSignal.shutdown();
     }
 

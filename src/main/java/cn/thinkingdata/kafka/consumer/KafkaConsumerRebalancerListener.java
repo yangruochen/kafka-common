@@ -34,8 +34,7 @@ public class KafkaConsumerRebalancerListener implements ConsumerRebalanceListene
     // onPartitionsRevoked 这个方法会在 Consumer 停止拉取数据之后、group 进行 rebalance
     // 操作之前调用，作用是对已经 ack 的 msg 进行 commit；
     @Override
-    public void onPartitionsRevoked(
-            Collection<TopicPartition> partitions) {
+    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
         logger.info("start onPartitionsRevoked!");
         for (TopicPartition partition : partitions) {
             KafkaConsumerOffset kafkaConsumerOffset = KafkaCache.kafkaConsumerOffsetMaps.get(partition);
@@ -67,8 +66,7 @@ public class KafkaConsumerRebalancerListener implements ConsumerRebalanceListene
     // onPartitionsAssigned 这个方法 group 已经进行 reassignment
     // 之后，开始拉取数据之前调用，作用是清理内存中不属于这个线程的 msg、获取 partition 的 last committed offset。
     @Override
-    public void onPartitionsAssigned(
-            Collection<TopicPartition> partitions) {
+    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         logger.info("start onPartitionsAssigned!");
         Date now = new Date();
         for (TopicPartition partition : partitions) {

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>cn.thinkingdata</groupId>
     <artifactId>kafka-common</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
     <name>thinkingdata-kafka-common</name>
     <description>kafka-common</description>
     <url>http://www.thinkinggame.cn</url>

@@ -21,7 +21,7 @@ public class KafkaSubscribeConsumerManager {
     }
 
     public KafkaConsumer<String, String> createKafkaConsumer(List<String> topicList, Properties props) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(props);
+        KafkaConsumer<String, String> consumer = new KafkaConsumer(props);
         KafkaConsumerRebalancerListener rebalancerListener = new KafkaConsumerRebalancerListener(consumer);
         KafkaCache.rebalancerListenerList.add(rebalancerListener);
         consumer.subscribe(topicList, rebalancerListener);
